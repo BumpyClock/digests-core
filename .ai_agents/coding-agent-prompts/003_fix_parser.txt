@@ -1,0 +1,51 @@
+You are the coding agent in /Users/adityasharma/Projects/digests-core. Approval policy "never". Follow ~/.claude/docs/writing-code.md. Current state: feed parser exists but misses required heuristics/tests. Fix it to match instructions below. Do NOT touch crates/ffi or fixtures.
+
+Targets:
+- File paths: crates/feed/src/parser.rs, time_parse.rs (if needed), and new/updated tests in crates/feed/tests/parser_tests.rs. Keep ABOUTME headers.
+
+Required parser behavior (apply exactly):
+1) Feed type detection detect_feed_type(feed_rs::Feed):
+   - If feed.extensions contains namespace "itunes" (any key) OR feed.rating.urn == "itunes" => "podcast".
+   - Else sample first up to 5 entries; for each entry count as podcast indicator if (a) entry.extensions has namespace "itunes", OR (b) any link rel=="enclosure" with media_type starting with audio/ or video/, OR (c) any media.content content_type starts with audio/ or video/. Majority -> podcast else article. Do NOT rely solely on media.duration.
+
+2) Enclosures extraction:
+   - Include entry.links where rel==LinkRel::Enclosure (or rel string "enclosure"); map url=href, mime_type=media_type, length=length.unwrap_or(0).
+   - Also include media.content entries with url. Deduplicate identical URL/mime pairs (keep first).
+
+3) Primary media selection: priority audio/mpeg > audio/mp3 > audio/mp4 > audio/aac; else first enclosure.
+
+4) iTunes extensions parsing (entry + feed): use extensions map (namespace key is "itunes"). For first matching extension name value/attrs.
+   - feed image: extension name "image" attr "href" overrides logo/icon.
+   - feed author: extension name "author" text content if no standard author.
+   - entry image: extension name "image" attr "href" is highest priority for image/thumbnail.
+   - entry author: extension name "author" text if no standard author/media credit.
+   - entry duration: extension name "duration" text parsed with parse_duration_seconds when media.duration missing.
+   - entry explicit: extension name "explicit" text case-insensitive in {"yes","true","explicit"} => true.
+
+5) Explicit flag: true if (a) explicit from extensions as above OR (b) any media.rating urn=="itunes" with value in {"true","yes","explicit"} (case-insensitive). Otherwise false.
+
+6) Image/thumbnail selection order for items:
+   (1) iTunes image (entry extension image href)
+   (2) First image enclosure (mime starts with image/)
+   (3) media thumbnail (entry.media[].thumbnails.first())
+   (4) first <img> in content HTML (extract_first_image with base=item URL)
+   (5) first <img> in summary HTML
+   Set both image_url and thumbnail_url to the same selected value.
+
+7) Summary/content mapping: summary = strip_html(entry.summary.content) or ""; content = entry.content.body if present else entry.content.src.href if present else summary clone.
+
+8) Duration seconds default 0 if none; explicit_flag default false.
+
+9) published_ms/updated_ms logic unchanged (use feed-rs timestamps, fallback to 0 / now for feed updated).
+
+10) Keep re-exports etc.
+
+Tests (new file crates/feed/tests/parser_tests.rs; you can reuse existing helpers but ensure tests cover requirements):
+- test_article_feed_basic: inline RSS without iTunes, two items, first item content contains <img src="/img/a.jpg">, base link https://example.com/post1. Assert feed.feed_type == "article"; item[0].thumbnail_url resolved to https://example.com/img/a.jpg; duration_seconds == 0; explicit_flag == false.
+- test_podcast_feed_basic: inline RSS with itunes namespace, channel itunes:image href="https://podcast/img.jpg"; item has enclosure url="https://cdn/show.mp3" type="audio/mpeg" length="12345" and itunes:duration "01:02:03" and itunes:explicit "yes" and itunes:image href="https://cdn/episode.jpg". Assert feed.feed_type == "podcast"; feed.image_url == Some("https://podcast/img.jpg"); item.primary_media_url == Some("https://cdn/show.mp3"); item.duration_seconds == 3723; item.explicit_flag == true; item.thumbnail_url == Some("https://cdn/episode.jpg").
+- test_time_format_mst: feed pubDate "Mon, 02 Jan 2006 15:04:05 MST" parsed -> feed.published_ms != 0 (uses parse_flexible_time formats). Use minimal RSS string; ensure parser doesn't panic.
+Place tests under ABOUTME header. Keep tests fast and standalone (no network, no fixtures).
+
+Other notes:
+- Do not edit api_reference_responses or crates/ffi.
+- Ensure cargo test passes.

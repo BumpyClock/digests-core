@@ -1,0 +1,60 @@
+You are the coding agent in /Users/adityasharma/Projects/digests-core. Approval policy is "never". Follow ~/.claude/docs/writing-code.md (ABOUTME headers, minimal changes, no mocks). Plan: .ai_agents/porting_plan.md. ABI contracts: .ai_agents/structs.md. Fixtures live in api_reference_responses/ (do NOT edit). ReaderView/metadata come later. Utilities already exist; keep them.
+
+Task: Implement the feed parsing core in crates/feed (Rust) with internal models and parsing logic using feed-rs. Do NOT modify crates/ffi yet. Ensure workspace `cargo test` passes.
+
+Decisions (must follow):
+- Public entry point: add `pub fn parse_feed_bytes(data: &[u8], feed_url: &str) -> Result<Feed, FeedError>` in `crates/feed/src/lib.rs` (re-exported). No network; data already fetched.
+- Internal models (new `models.rs`): `Feed`, `FeedItem`, `Enclosure`, `Author` with fields matching .ai_agents/structs.md but using Rust types:
+  * Feed { title:String, home_url:String, feed_url:String, description:String, language:Option<String>, image_url:Option<String>, author:Option<Author>, published_ms:u64, updated_ms:u64, items:Vec<FeedItem>, generator:Option<String>, copyright:Option<String>, feed_type:String }
+  * FeedItem { title:String, url:String, image_url:Option<String>, summary:String, content:String, guid:String, language:Option<String>, feed_type:String, published_ms:u64, updated_ms:u64, author:Option<Author>, categories:Vec<String>, enclosures:Vec<Enclosure>, primary_media_url:Option<String>, thumbnail_url:Option<String>, explicit_flag:bool, duration_seconds:u32 }
+  * Enclosure { url:String, mime_type:Option<String>, length:u64 }
+  * Author { name:Option<String>, email:Option<String>, uri:Option<String> }
+- Error type: new `FeedError` enum (Parse, Invalid, Empty) with Display + std::error::Error.
+- Use chrono::Utc::now() as last resort for timestamps; times in milliseconds since epoch; zero if unknown.
+- Feed parsing uses `feed_rs` crate. Map fields:
+  * title = feed.title.content if exists else ""; description = feed.description.content or empty.
+  * home_url: first link rel="alternate" if present else first link href else empty.
+  * feed_url: the `feed_url` argument (store exactly).
+  * language: feed.language.
+  * image_url: feed.image.map(|i| i.uri) else iTunes image if found (see extensions below).
+  * author: first feed.author (name/email) else iTunes author (name only).
+  * published_ms: feed.published to ms else 0; updated_ms: feed.updated else feed.published else now().ms.
+  * generator: feed.generator (string content); copyright: feed.rights.content.
+  * feed_type: see detection below.
+- Item mapping:
+  * title: entry.title.content or empty; guid: entry.id or empty.
+  * url: first link rel="alternate" else entry.id else empty.
+  * language: entry.language or feed.language.
+  * published_ms: entry.published -> ms; updated_ms: entry.updated else published else 0.
+  * author: entry.authors[0] (name/email) else iTunes author on entry.
+  * summary: entry.summary.map(|t| strip_html(&t.content)) else empty.
+  * content: entry.content.map(|c| match c.body { Some(html) => html, None => c.value }).unwrap_or_else(|| summary.clone());
+  * categories: entry.categories names.
+  * enclosures: from entry.links where rel == feed_rs::model::LinkRel::Enclosure; url=href; mime_type=media_type; length=length.unwrap_or(0).
+  * primary_media_url: choose best enclosure via audio priority: audio/mpeg > audio/mp3 > audio/mp4 > audio/aac; else first enclosure url; else None.
+  * image/thumbnail selection priority: (1) iTunes image on entry; (2) first enclosure where mime starts with image/; (3) entry.media.thumbnail URL if present; (4) first `<img>` from content HTML via extract_first_image(content_html, Some(url)); (5) first `<img>` from summary HTML similarly. Set both image_url and thumbnail_url to the same selected value (if any).
+  * explicit_flag: iTunes explicit equals "yes"/"true" (case-insensitive) -> true.
+  * duration_seconds: parse iTunes duration string via parse_duration_seconds; None -> 0.
+  * feed_type: propagate feed.feed_type for each item.
+- Feed type detection (function detect_feed_type(feed: &feed_rs::model::Feed) -> String):
+  1) if feed.extensions contains namespace "itunes" -> "podcast".
+  2) else inspect up to first 5 entries: count entries that either have iTunes extensions OR any enclosure with media_type starting with "audio/" or "video/". If count * 2 > checked -> "podcast" else "article".
+- iTunes extraction helper (use extensions map):
+  * feed-level image: extension ns "itunes", name "image", attribute "href".
+  * feed-level author: ns "itunes", name "author", text content.
+  * entry-level image, author, duration, explicit, summary, subtitle, episode, season, episodeType. For this task only image/author/duration/explicit needed.
+  * safe access: extensions: HashMap<String, HashMap<String, Vec<Extension>>>; get first extension value and read attrs/value.
+- Utilities: reuse strip_html, extract_first_image, parse_duration_seconds, parse_flexible_time.
+- Time parsing: ensure parse_flexible_time covers the Go formats listed in porting_plan (RFC3339, RFC3339Nano, RFC1123, RFC1123Z, RFC822, RFC822Z, 2006-01-02T15:04:05Z07:00, 2006-01-02T15:04:05, 2006-01-02 15:04:05, 2006-01-02, 02 Jan 2006 15:04:05 MST, 02 Jan 2006 15:04:05 -0700, Mon, 02 Jan 2006 15:04:05 MST, Mon, 02 Jan 2006 15:04:05 -0700, Mon, 2 Jan 2006 15:04:05 MST, Mon, 2 Jan 2006 15:04:05 -0700). If current implementation misses some, extend it.
+
+Tests to add (crates/feed/tests/parser_tests.rs):
+- parse_article_feed_basic: small inline RSS/Atom feed string without iTunes/audio enclosures; assert feed_type == "article"; first item thumbnail resolved from content img; published_ms nonzero; duration_seconds == 0; explicit_flag == false.
+- parse_podcast_feed_basic: small inline RSS with iTunes tags, two items with audio enclosures (one mp3). Assert feed_type == "podcast"; primary_media_url selects mp3; duration_seconds parsed; explicit_flag true when itunes:explicit "yes"; image_url/thumbnail from itunes:image.
+- time_format_coverage: parse_feed_bytes on a feed whose pubDate is "Mon, 02 Jan 2006 15:04:05 MST" and ensure published_ms nonzero (covers format).
+Use inline XML strings in tests (no network, no fixture files). Keep tests fast.
+
+Other notes
+- Maintain ABOUTME headers on new files.
+- Do not touch api_reference_responses/ or crates/ffi.
+- Keep Cargo.lock if updated, that is fine.
+- Ensure `cargo test` passes in workspace.

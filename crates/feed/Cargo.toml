@@ -1,0 +1,17 @@
+[package]
+name = "digests-feed"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+feed-rs = "1"
+chrono = { version = "0.4", features = ["serde", "clock"] }
+scraper = "0.17"
+url = "2"
+parse_duration = "2"
+serde = { version = "1", features = ["derive"] }
+thiserror = "1"
+quick-xml = "0.31"
+
+[dev-dependencies]
+pretty_assertions = "1"
