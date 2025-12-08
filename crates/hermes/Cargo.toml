@@ -1,0 +1,28 @@
+[package]
+name = "digests-hermes"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1"
+thiserror = "2.0.17"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+url = "2"
+scraper = "0.25.0"
+ego-tree = "0.10"
+reqwest = { version = "0.12", features = ["rustls-tls", "cookies", "gzip", "brotli", "deflate", "json", "stream"] }
+tokio = { version = "1.39", features = ["macros", "rt-multi-thread", "time"] }
+chrono = { version = "0.4", features = ["serde", "clock"] }
+ammonia = "4.1.2"
+htmd = "0.5.0"
+chardetng = "0.1"
+encoding_rs = "0.8"
+futures = "0.3"
+ipnet = "2"
+bytes = "1"
+dateparser = "0.2"
+
+[dev-dependencies]
+pretty_assertions = "1"
+httpmock = "0.8.2"

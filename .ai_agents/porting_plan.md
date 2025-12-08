@@ -5,6 +5,7 @@
 - Inputs: already-fetched feed bytes + feed URL.
 - Outputs: `DFeed` + items with media/thumbnails, language, timings, iTunes metadata.
 - Out of scope for now: Hermes ReaderView port, metadata-only extractor, HTTP fetching/caching, category enrichment, storage, hash/refresh logic.
+- Hermes port staging: `crates/hermes` scaffolded inside workspace (ReaderView). Currently stubbed; next step is to port logic from `~/Projects/hermes` into this crate and wire FFI (`digests_extract_reader`).
 
 ## Source-of-truth behaviors from digests-api (Go)
 - Parser: `gofeed` default parser (`core/feed/service.go`).

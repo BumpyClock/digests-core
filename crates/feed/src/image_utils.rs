@@ -116,7 +116,9 @@ mod tests {
     fn test_is_valid_image_url_accepts_normal() {
         assert!(is_valid_image_url("https://example.com/image.jpg"));
         assert!(is_valid_image_url("https://example.com/photo.png"));
-        assert!(is_valid_image_url("https://cdn.example.com/uploads/header.webp"));
+        assert!(is_valid_image_url(
+            "https://cdn.example.com/uploads/header.webp"
+        ));
     }
 
     #[test]
@@ -133,7 +135,9 @@ mod tests {
 
     #[test]
     fn test_is_valid_image_url_rejects_tiny_dimensions() {
-        assert!(!is_valid_image_url("https://example.com/img.gif?width=1&height=1"));
+        assert!(!is_valid_image_url(
+            "https://example.com/img.gif?width=1&height=1"
+        ));
         assert!(!is_valid_image_url("https://example.com/img.gif?w=1&h=1"));
     }
 
@@ -151,10 +155,16 @@ mod tests {
     #[test]
     fn test_resolve_image_url_relative_with_base() {
         let result = resolve_image_url("/images/photo.jpg", Some("https://example.com/article/1"));
-        assert_eq!(result, Some("https://example.com/images/photo.jpg".to_string()));
+        assert_eq!(
+            result,
+            Some("https://example.com/images/photo.jpg".to_string())
+        );
 
         let result = resolve_image_url("photo.jpg", Some("https://example.com/article/"));
-        assert_eq!(result, Some("https://example.com/article/photo.jpg".to_string()));
+        assert_eq!(
+            result,
+            Some("https://example.com/article/photo.jpg".to_string())
+        );
     }
 
     #[test]
@@ -178,7 +188,8 @@ mod tests {
 
     #[test]
     fn test_extract_first_image_skips_tracking() {
-        let html = r#"<img src="https://example.com/pixel.gif"><img src="https://example.com/real.jpg">"#;
+        let html =
+            r#"<img src="https://example.com/pixel.gif"><img src="https://example.com/real.jpg">"#;
         let result = extract_first_image(html, None);
         assert_eq!(result, Some("https://example.com/real.jpg".to_string()));
     }
@@ -187,7 +198,10 @@ mod tests {
     fn test_extract_first_image_resolves_relative() {
         let html = r#"<img src="/images/photo.jpg">"#;
         let result = extract_first_image(html, Some("https://example.com/article/1"));
-        assert_eq!(result, Some("https://example.com/images/photo.jpg".to_string()));
+        assert_eq!(
+            result,
+            Some("https://example.com/images/photo.jpg".to_string())
+        );
     }
 
     #[test]

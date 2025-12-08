@@ -1,0 +1,7433 @@
+[
+  {
+    "domain": "people.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        ".article-header h1",
+        [
+          "meta[name=\"og:title\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        [
+          "meta[name=\"sailthru.author\"]",
+          "value"
+        ],
+        "a.author.url.fn"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div[class^=\"loc article-content\"]",
+        "div.article-body__inner"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        ".mntl-attribution__item-date",
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        ".article-header h2"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "next_page_url": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "excerpt": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.spektrum.de",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        ".content__title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        ".content__author__info__name"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "article.content"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".breadcrumbs",
+        ".hide-for-print",
+        "aside",
+        "header h2",
+        ".image__article__top",
+        ".content__author",
+        ".copyright",
+        ".callout-box"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        ".content__meta__date"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ],
+        [
+          "meta[property=\"og:image\"]",
+          "content"
+        ],
+        ".image__article__top img"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        ".content__intro"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.bloomberg.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        ".lede-headline",
+        "h1.article-title",
+        "h1[class^=\"headline\"]",
+        "h1.lede-text-only__hed"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        [
+          "meta[name=\"parsely-author\"]",
+          "value"
+        ],
+        ".byline-details__link",
+        ".bydek",
+        ".author",
+        "p[class*=\"author\"]"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".article-body__content",
+        ".body-content",
+        "section.copy-block",
+        ".body-copy"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".inline-newsletter",
+        ".page-ad"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "time.published-at",
+          "datetime"
+        ],
+        [
+          "time[datetime]",
+          "datetime"
+        ],
+        [
+          "meta[name=\"date\"]",
+          "value"
+        ],
+        [
+          "meta[name=\"parsely-pub-date\"]",
+          "value"
+        ],
+        [
+          "meta[name=\"parsely-pub-date\"]",
+          "content"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ],
+        [
+          "meta[name=\"og:image\"]",
+          "content"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.newyorker.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1[class^=\"content-header\"]",
+        "h1[class^=\"ArticleHeader__hed\"]",
+        "h1[class*=\"ContentHeaderHed\"]",
+        [
+          "meta[name=\"og:title\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "article header div[class^=\"BylinesWrapper\"]",
+        [
+          "meta[name=\"article:author\"]",
+          "value"
+        ],
+        "div[class^=\"ArticleContributors\"] a[rel=\"author\"]",
+        "article header div[class*=\"Byline__multipleContributors\"]"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".article__body",
+        "article.article.main-content",
+        "main[class^=\"Layout__content\"]"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        "footer[class^=\"ArticleFooter__footer\"]",
+        "aside"
+      ],
+      "transforms": {
+        ".caption__credit": {
+          "type": "tag",
+          "value": "figcaption"
+        },
+        ".caption__text": {
+          "type": "tag",
+          "value": "figcaption"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ],
+        "time.content-header__publish-date",
+        [
+          "meta[name=\"pubdate\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        "div[class^=\"ContentHeaderDek\"]",
+        "div.content-header__dek",
+        "h2[class^=\"ArticleHeader__dek\"]"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "next_page_url": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "excerpt": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "deadspin.com",
+    "supported_domains": [
+      "jezebel.com",
+      "lifehacker.com",
+      "kotaku.com",
+      "gizmodo.com",
+      "jalopnik.com",
+      "kinja.com",
+      "avclub.com",
+      "clickhole.com",
+      "splinternews.com",
+      "theonion.com",
+      "theroot.com",
+      "thetakeout.com",
+      "theinventory.com"
+    ],
+    "title": {
+      "selectors": [
+        "header h1",
+        "h1.headline"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "a[data-ga*=\"Author\"]",
+        ".author"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".js_post-content",
+        ".post-content",
+        ".entry-content"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".magnifier",
+        ".lightbox"
+      ],
+      "transforms": {
+        "iframe.lazyload[data-recommend-id^=\"youtube://\"]": {
+          "type": "noop"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ],
+        [
+          "time.updated[datetime]",
+          "datetime"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "abcnews.go.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "div[class*=\"Article_main__body\"] h1",
+        ".article-header h1"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        ".ShareByline span:nth-child(2)",
+        ".authors"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "article",
+        ".article-copy"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        ".ShareByline",
+        ".timestamp"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.reuters.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1[class*=\"ArticleHeader-headline-\"]",
+        "h1.article-headline"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        [
+          "meta[name=\"og:article:author\"]",
+          "value"
+        ],
+        ".author"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div.ArticleBodyWrapper",
+        "#article-text"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        "div[class^=\"ArticleBody-byline-container-\"]",
+        "#article-byline .author"
+      ],
+      "transforms": {
+        ".article-subtitle": {
+          "type": "tag",
+          "value": "h4"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"og:article:published_time\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.nationalgeographic.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1",
+        "h1.main-title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        ".byline-component__contributors b span"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "section.Article__Content",
+        [
+          ".parsys.content",
+          ".__image-lead__"
+        ],
+        ".content"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".pull-quote.pull-quote--small"
+      ],
+      "transforms": {
+        ".parsys.content": {
+          "type": "noop"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        ".Article__Headline__Desc",
+        ".article__deck"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "wikipedia.org",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h2.title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "#mw-content-text"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".mw-editsection",
+        "figure tr, figure td, figure tbody",
+        "#toc",
+        ".navbox"
+      ],
+      "transforms": {
+        ".infobox": {
+          "type": "tag",
+          "value": "figure"
+        },
+        ".infobox caption": {
+          "type": "tag",
+          "value": "figcaption"
+        },
+        ".infobox img": {
+          "type": "noop"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        "#footer-info-lastmod"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.fortinet.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        ".b15-blog-meta__author"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div.responsivegrid.aem-GridColumn.aem-GridColumn--default--12"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {
+        "noscript": {
+          "type": "noop"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "news.mynavi.jp",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        [
+          "meta[name=\"og:title\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "a.articleHeader_name",
+        "main div.article-author a.article-author__name"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div.article-body",
+        "main article div"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {
+        "img": {
+          "type": "noop"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        [
+          "meta[name=\"og:description\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.slate.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        ".hed",
+        "h1"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "a[rel=author]"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".body"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".about-the-author",
+        ".pullquote",
+        ".newsletter-signup-component",
+        ".top-comment"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        ".pub-date"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        ".dek"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "deadline.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "section.author h2"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div.a-article-grid__main.pmc-a-grid article.pmc-a-grid-item"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        "figcaption"
+      ],
+      "transforms": {
+        ".embed-twitter": {
+          "type": "noop"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "next_page_url": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "excerpt": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.npr.org",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1",
+        ".storytitle"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "p.byline__name.byline__name--block"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".storytext"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        "div.enlarge_measure",
+        "b.toggle-caption",
+        "b.hide-caption",
+        ".ad-header",
+        ".ad-wrap",
+        "aside.ad-wrap",
+        "aside[id*='ad-']",
+        "button",
+        ".bucketwrap .toggle-caption",
+        ".bucketwrap .hide-caption"
+      ],
+      "transforms": {
+        ".bucketwrap.image": {
+          "type": "tag",
+          "value": "figure"
+        },
+        ".bucketwrap.image .credit-caption": {
+          "type": "tag",
+          "value": "figcaption"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          ".dateblock time[datetime]",
+          "datetime"
+        ],
+        [
+          "meta[name=\"date\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ],
+        [
+          "meta[name=\"twitter:image:src\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.lifehacker.jp",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1[class^=\"article_pArticle_Title\"]",
+        "h1.lh-summary-title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        [
+          "meta[name=\"author\"]",
+          "value"
+        ],
+        "p.lh-entryDetailInner--credit"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div[class^=\"article_pArticle_Body__\"]",
+        "div.lh-entryDetail-body"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        "p.lh-entryDetailInner--credit"
+      ],
+      "transforms": {
+        "img.lazyload": {
+          "type": "noop"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ],
+        [
+          "div.lh-entryDetail-header time",
+          "datetime"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.latimes.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1.headline",
+        ".trb_ar_hl"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "a[data-click=\"standardBylineAuthorName\"]",
+        [
+          "meta[name=\"author\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".page-article-body",
+        ".trb_ar_main"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".trb_ar_by",
+        ".trb_ar_cr"
+      ],
+      "transforms": {
+        ".trb_ar_la": {
+          "type": "noop"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ],
+        [
+          "meta[itemprop=\"datePublished\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.miamiherald.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1.title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div.dateline-storybody"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        "p.published-date"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.phoronix.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "article h1",
+        "article header"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        ".author a:first-child"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".content"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        ".author"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.politico.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        [
+          "meta[name=\"og:title\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        [
+          "div[itemprop=\"author\"] meta[itemprop=\"name\"]",
+          "value"
+        ],
+        ".story-meta__authors .vcard",
+        ".story-main-content .byline .vcard"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".story-text",
+        ".story-main-content",
+        ".story-core"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        "figcaption",
+        ".story-meta",
+        ".ad"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "time[itemprop=\"datePublished\"]",
+          "datetime"
+        ],
+        [
+          ".story-meta__details time[datetime]",
+          "datetime"
+        ],
+        [
+          ".story-main-content .timestamp time[datetime]",
+          "datetime"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        [
+          "meta[name=\"og:description\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.eonline.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1.article-detail__title",
+        "h1.article__title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        ".article-detail__meta__author",
+        ".entry-meta__author a"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".article-detail__main-content section",
+        ".post-content section, .post-content div.post-content__image"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {
+        "div.post-content__image": {
+          "type": "tag",
+          "value": "figure"
+        },
+        "div.post-content__image .image__credits": {
+          "type": "tag",
+          "value": "figcaption"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ],
+        [
+          "meta[itemprop=\"datePublished\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "next_page_url": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "excerpt": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "blogspot.com",
+    "supported_domains": [
+      "www.blogspot.com",
+      "blogspot.co.uk",
+      "blogspot.ca",
+      "blogspot.de",
+      "blogspot.fr",
+      "blogspot.jp",
+      "blogspot.in",
+      "blogspot.com.au",
+      "blogspot.com.br",
+      "blogspot.mx"
+    ],
+    "title": {
+      "selectors": [
+        ".post h2.title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        ".post-author-name"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".post-content noscript"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {
+        "noscript": {
+          "type": "tag",
+          "value": "div"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        "span.publishdate"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.sbnation.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1.c-page-title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        [
+          "meta[name=\"author\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div.c-entry-content"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        "p.c-entry-summary.p-dek",
+        "h2.c-entry-summary.p-dek"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.chicagotribune.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        [
+          "meta[name=\"og:title\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "div.article_byline span:first-of-type"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "article"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        "time"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "fandom.wikia.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1.entry-title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        ".author vcard",
+        ".fn"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".grid-content",
+        ".entry-content"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.wired.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1[data-testId=\"ContentHeaderHed\"]"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        [
+          "meta[name=\"article:author\"]",
+          "value"
+        ],
+        "a[rel=\"author\"]"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "article.article.main-content",
+        "article.content"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".visually-hidden",
+        "figcaption img.photo",
+        ".alert-message"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.cbc.ca",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        ".authorText",
+        ".bylineDetails"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".story"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          ".timeStamp[datetime]",
+          "datetime"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        ".deck"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "arstechnica.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "*[rel=\"author\"] *[itemprop=\"name\"]"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div[itemprop=\"articleBody\"]"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        "figcaption .enlarge-link",
+        "figcaption .sep",
+        "figure.video",
+        ".gallery",
+        "aside",
+        ".sidebar"
+      ],
+      "transforms": {
+        "h2": {
+          "type": "noop"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          ".byline time",
+          "datetime"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        "h2[itemprop=\"description\"]"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "buzzap.jp",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1.entry-title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div.ctiframe"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "time.entry-date",
+          "datetime"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.apartmenttherapy.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1.headline"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        ".PostByline__name"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div.post__content"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {
+        "div[data-render-react-id=\"images/LazyPicture\"]": {
+          "type": "noop"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          ".PostByline__timestamp[datetime]",
+          "datetime"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.theguardian.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1",
+        ".content__headline"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "address[data-link-name=\"byline\"]",
+        "p.byline"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "#maincontent",
+        ".content__article-body"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".hide-on-mobile",
+        ".inline-icon"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        "div[data-gu-name=\"standfirst\"]",
+        ".content__standfirst"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.cbssports.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        ".Article-headline",
+        ".article-headline"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        ".ArticleAuthor-nameText",
+        ".author-name"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".article"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[itemprop=\"datePublished\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "timezone": "UTC"
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        ".Article-subline",
+        ".article-subline"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.msn.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "span.authorname-txt"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div.richtext"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        "span.caption"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        "span.time"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.inquisitr.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1.entry-title.story--header--title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "div.story--header--author"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "article.story",
+        ".entry-content"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".post-category",
+        ".story--header--socials",
+        ".story--header--content"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"datePublished\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.theatlantic.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1",
+        ".c-article-header__hed"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        [
+          "meta[name=\"author\"]",
+          "value"
+        ],
+        ".c-byline__author"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "article",
+        ".article-body"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".partner-box",
+        ".callout",
+        ".c-article-writer__image",
+        ".c-article-writer__content",
+        ".c-letters-cta__text",
+        ".c-footer__logo",
+        ".c-recirculation-link",
+        ".twitter-tweet"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "time[itemprop=\"datePublished\"]",
+          "datetime"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        [
+          "meta[name=\"description\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "next_page_url": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "excerpt": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.itmedia.co.jp",
+    "supported_domains": [
+      "www.atmarkit.co.jp",
+      "techtarget.itmedia.co.jp",
+      "nlab.itmedia.co.jp"
+    ],
+    "title": {
+      "selectors": [
+        "#cmsTitle h1"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "#byline"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "#cmsBody"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        "#snsSharebox"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:modified_time\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        "#cmsAbstract h2"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "biorxiv.org",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1#page-title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "div.highwire-citation-biorxiv-article-top > div.highwire-cite-authors"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div#abstract-1"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    }
+  },
+  {
+    "domain": "www.dmagazine.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1.story__title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        ".story__info .story__info__item:first-child"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".story__content"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        ".story__info"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "article figure a:first-child",
+          "href"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        ".story__subhead"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.ladbible.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "[class*=Byline]"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "[class*=ArticleContainer]"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        "time",
+        "source",
+        "a[href^=\"https://www.ladbible.com/\"]",
+        "picture",
+        "[class*=StyledCardBlock]"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        "time"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.usmagazine.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "header h1"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "a.author",
+        "a.article-byline.tracked-offpage"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div.article-content"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".module-related"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "next_page_url": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "excerpt": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.ipa.go.jp",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "#ipar_main"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        "p.ipar_text_right"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        "p.ipar_text_right"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.cnn.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1.pg-headline",
+        "h1"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        [
+          "meta[name=\"author\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        [
+          ".media__video--thumbnail",
+          ".zn-body-text"
+        ],
+        ".zn-body-text",
+        "div[itemprop=\"articleBody\"]"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {
+        ".media__video--thumbnail": {
+          "type": "tag",
+          "value": "figure"
+        },
+        ".zn-body__paragraph": {
+          "type": "noop"
+        },
+        ".zn-body__paragraph, .el__leafmedia--sourced-paragraph": {
+          "type": "noop"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.rbbtoday.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        ".writer.writer-name"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".arti-content"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".arti-giga"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "header time",
+          "datetime"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        [
+          "meta[name=\"description\"]",
+          "value"
+        ],
+        ".arti-summary"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.nydailynews.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1.headline",
+        "h1#ra-headline"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        ".article_byline span",
+        [
+          "meta[name=\"parsely-author\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "article",
+        "article#ra-body"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        "dl#ra-tags",
+        ".ra-related",
+        "a.ra-editor",
+        "dl#ra-share-bottom"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        "time",
+        [
+          "meta[name=\"sailthru.date\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.tmz.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        ".post-title-breadcrumb",
+        "h1",
+        ".headline"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "TMZ STAFF"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".article__blocks",
+        ".article-content",
+        ".all-post-body"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".lightbox-link"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        ".article__published-at",
+        ".article-posted-date"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "next_page_url": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "excerpt": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "japan.cnet.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        ".leaf-headline-ttl"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        ".writer"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div.article_body"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        ".date"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.yomiuri.co.jp",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1.title-article.c-article-title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div.p-main-contents"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.opposingviews.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1.m-detail-header--title",
+        "h1.title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        [
+          "meta[name=\"author\"]",
+          "value"
+        ],
+        "div.date span span a"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".m-detail--body",
+        ".article-content"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".show-for-small-only"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"published\"]",
+          "value"
+        ],
+        [
+          "meta[name=\"publish_date\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "gothamist.com",
+    "supported_domains": [
+      "chicagoist.com",
+      "laist.com",
+      "sfist.com",
+      "shanghaiist.com",
+      "dcist.com"
+    ],
+    "title": {
+      "selectors": [
+        "h1",
+        ".entry-header h1"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        ".article-metadata:nth-child(3) .byline-author",
+        ".author"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".article-body",
+        ".entry-body"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".image-none br",
+        ".image-left br",
+        ".image-right br",
+        ".galleryEase"
+      ],
+      "transforms": {
+        ".image-left i": {
+          "type": "tag",
+          "value": "figcaption"
+        },
+        ".image-none i": {
+          "type": "tag",
+          "value": "figcaption"
+        },
+        ".image-right i": {
+          "type": "tag",
+          "value": "figcaption"
+        },
+        "div.image-left": {
+          "type": "tag",
+          "value": "figure"
+        },
+        "div.image-none": {
+          "type": "tag",
+          "value": "figure"
+        },
+        "div.image-right": {
+          "type": "tag",
+          "value": "figure"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ],
+        "abbr",
+        "abbr.published"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.infoq.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1.heading"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "div.widget.article__authors"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div.article__data"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        ".article__readTime.date"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        [
+          "meta[name=\"og:description\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.westernjournalism.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "title",
+        "h1.entry-title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        [
+          "meta[name=\"author\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div.article-sharing.top + div"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".ad-notice-small"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"DC.date.issued\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        ".subtitle"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.nbcnews.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "div.article-hero-headline h1",
+        "div.article-hed h1"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "div.article-inline-byline span.byline-name",
+        "span.byline_author"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div.article-body__content",
+        "div.article-body"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published\"]",
+          "value"
+        ],
+        [
+          ".flag_article-wrapper time.timestamp_article[datetime]",
+          "datetime"
+        ],
+        ".flag_article-wrapper time"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "sect.iij.ad.jp",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "div.title-box-inner h1",
+        "h3"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "p.post-author a",
+        "dl.entrydate dd"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".entry-inner",
+        "#article"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        "dl.entrydate"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        "time"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.buzzfeed.com",
+    "supported_domains": [
+      "www.buzzfeednews.com"
+    ],
+    "title": {
+      "selectors": [
+        "h1.embed-headline-title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "a[data-action=\"user/username\"]",
+        "byline__author",
+        [
+          "meta[name=\"author\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        [
+          "div[class^=\"featureimage_featureImageWrapper\"]",
+          ".js-subbuzz-wrapper"
+        ],
+        ".js-subbuzz-wrapper"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".instapaper_ignore",
+        ".suplist_list_hide .buzz_superlist_item .buzz_superlist_number_inline",
+        ".share-box",
+        ".print",
+        ".js-inline-share-bar",
+        ".js-ad-placement"
+      ],
+      "transforms": {
+        "div.longform_custom_header_media": {
+          "type": "noop"
+        },
+        "figure.longform_custom_header_media .longform_header_image_source": {
+          "type": "tag",
+          "value": "figcaption"
+        },
+        "h2": {
+          "type": "tag",
+          "value": "b"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "time[datetime]",
+          "datetime"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        ".embed-headline-description"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "blogspot.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        ".post h2.title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        ".post-author-name"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".post-content noscript"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {
+        "noscript": {
+          "type": "tag",
+          "value": "div"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        "span.publishdate"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "nymag.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1.lede-feature-title",
+        "h1.headline-primary",
+        "h1"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        ".by-authors",
+        ".lede-feature-author"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div.article-content",
+        "section.body",
+        "article.article"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".ad",
+        ".single-related-story"
+      ],
+      "transforms": {
+        "h1": {
+          "type": "tag",
+          "value": "h2"
+        },
+        "noscript": {
+          "type": "noop"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "time.article-timestamp[datetime]",
+          "datetime"
+        ],
+        "time.article-timestamp"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        ".lede-feature-teaser"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "next_page_url": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "excerpt": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.theverge.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        [
+          "meta[name=\"author\"]",
+          "value"
+        ],
+        [
+          "meta[name=\"parsely-author\"]",
+          "value"
+        ],
+        [
+          "meta[name=\"cse-authors\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".duet--article--article-body-component",
+        "div[id*='zephr-anchor']",
+        "article",
+        ".article-content",
+        [
+          ".c-entry-hero .e-image",
+          ".c-entry-intro"
+        ],
+        [
+          ".e-image--hero",
+          ".c-entry-content"
+        ],
+        ".l-wrapper .l-feature",
+        "div.c-entry-content"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".aside",
+        "img.c-dynamic-image",
+        ".duet--article--image-gallery-two-up .kqz8fh5 .kqz8fh8 .kqz8fh7",
+        ".duet--article--image-gallery-two-up .kqz8fha .kqz8fh9",
+        "div[class*='image-gallery'] img[srcset]",
+        ".duet--media--content-warning",
+        "._1etxtj1",
+        ".c-related-list",
+        ".c-entry-group-labels",
+        ".c-follow-button",
+        ".tly2fw0",
+        "button",
+        ".c-image-gallery__nav",
+        "[class*='follow']"
+      ],
+      "transforms": {
+        "noscript": {
+          "type": "noop"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        ".p-dek"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "pitchfork.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        [
+          "meta[name=\"og:title\"]",
+          "value"
+        ],
+        "title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        [
+          "meta[name=\"article:author\"]",
+          "value"
+        ],
+        ".authors-detail__display-name"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div.body__inner-container",
+        ".review-detail__text"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        "div[class^=\"InfoSliceWrapper-\"]",
+        [
+          ".pub-date",
+          "datetime"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ],
+        [
+          ".single-album-tombstone__art img",
+          "src"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        [
+          "meta[name=\"og:description\"]",
+          "value"
+        ],
+        ".review-detail__abstract"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "next_page_url": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "excerpt": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "extend": {
+      "score": {
+        "selectors": [
+          "p[class*=\"Rating\"]",
+          ".score"
+        ],
+        "allow_multiple": false,
+        "default_cleaner": false
+      }
+    }
+  },
+  {
+    "domain": "www.prospectmagazine.co.uk",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        ".blog-header__title",
+        ".page-title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        ".blog-header__author-link",
+        ".aside_author .title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".blog__container",
+        "article .post_content"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ],
+        ".post-info"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        ".blog-header__description",
+        ".page-subtitle"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.gizmodo.jp",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1.p-post-title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "li.p-post-AssistAuthor"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "article.p-post"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        "h1.p-post-title",
+        "ul.p-post-Assist"
+      ],
+      "transforms": {
+        "img.p-post-thumbnailImage": {
+          "type": "noop"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "li.p-post-AssistTime time",
+          "datetime"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "sciencefly.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        ".entry-title",
+        ".cb-entry-title",
+        ".cb-single-title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "div.cb-author",
+        "div.cb-author-title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div.theiaPostSlider_slides"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "div.theiaPostSlider_slides img",
+          "src"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.asahi.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "main h1",
+        ".ArticleTitle h1"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        [
+          "meta[name=\"article:author\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "main"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        "div.AdMod",
+        "div.LoginSelectArea",
+        "time",
+        "div.notPrint"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"pubdate\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "excerpt": {
+      "selectors": [
+        [
+          "meta[name=\"og:description\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.linkedin.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        ".article-title",
+        "h1"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        ".main-author-card h3",
+        [
+          "meta[name=\"article:author\"]",
+          "value"
+        ],
+        ".entity-name a[rel=author]"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".article-content__body",
+        [
+          "header figure",
+          ".prose"
+        ],
+        ".prose"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".entity-image"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        ".base-main-card__metadata",
+        [
+          "time[itemprop=\"datePublished\"]",
+          "datetime"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "thoughtcatalog.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1.title",
+        [
+          "meta[name=\"og:title\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "cite a",
+        "div.col-xs-12.article_header div.writer-container.writer-container-inline.writer-no-avatar h4.writer-name",
+        "h1.writer-name"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".entry.post"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".tc_mark",
+        "figcaption"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.vox.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1[class*=\"h74scy\"]",
+        "h1.c-page-title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        [
+          "meta[name=\"author\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".duet--article--article-body-component",
+        "div[id*='zephr-anchor']",
+        ".duet--layout--entry-body",
+        [
+          "figure.e-image--hero",
+          ".c-entry-content"
+        ],
+        ".c-entry-content"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".duet--article--block-placement",
+        ".duet--article--related",
+        ".duet--cta--newsletter",
+        "form",
+        ".duet--article--share-buttons",
+        ".duet--article--article-pullquote",
+        ".duet--media--caption"
+      ],
+      "transforms": {
+        "figure .e-image__image noscript": {
+          "type": "noop"
+        },
+        "figure .e-image__meta": {
+          "type": "tag",
+          "value": "figcaption"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        "p[class*=\"h74scyi\"]",
+        ".p-dek"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.gruene.de",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "header h1"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        [
+          "section header",
+          "section h2"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        "figcaption",
+        "p[class]"
+      ],
+      "transforms": {}
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[property=\"og:image\"]",
+          "content"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.qdaily.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h2",
+        "h2.title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        ".name"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".detail"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".lazyload",
+        ".lazylad",
+        ".lazylood"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          ".date.smart-date",
+          "data-origindate"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          ".article-detail-hd img",
+          "src"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        ".excerpt"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "epaper.zeit.de",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "p.title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        ".article__author"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".article"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        "image-credits",
+        "box[type=citation]"
+      ],
+      "transforms": {
+        ".article__author": {
+          "type": "tag",
+          "value": "p"
+        },
+        "byline": {
+          "type": "tag",
+          "value": "p"
+        },
+        "linkbox": {
+          "type": "tag",
+          "value": "p"
+        },
+        "p.title": {
+          "type": "tag",
+          "value": "h1"
+        }
+      }
+    },
+    "excerpt": {
+      "selectors": [
+        "subtitle"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.popsugar.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h2.post-title",
+        "title-text"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        [
+          "meta[name=\"article:author\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "#content"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".share-copy-title",
+        ".post-tags",
+        ".reactions"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "next_page_url": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "excerpt": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "twitter.com",
+    "supported_domains": [],
+    "author": {
+      "selectors": [
+        ".tweet.permalink-tweet .username"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".permalink[role=main]"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".stream-item-footer",
+        "button",
+        ".tweet-details-fixer"
+      ],
+      "transforms": {
+        ".permalink[role=main]": {
+          "type": "noop"
+        },
+        "s": {
+          "type": "tag",
+          "value": "span"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          ".permalink-tweet ._timestamp[data-time-ms]",
+          "data-time-ms"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.moongift.jp",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1.title a"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "#main"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        "ul.mg_service.cf"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        "ul.meta li:not(.social):first-of-type"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "timezone": "Asia/Tokyo"
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        [
+          "meta[name=\"og:description\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.rawstory.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        [
+          "meta[name=\"og:title\"]",
+          "value"
+        ],
+        ".blog-title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "div.main-post-head .social-author__name",
+        ".blog-author a:first-of-type"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".post-body",
+        ".blog-content"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ],
+        ".blog-author a:last-of-type"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "timesofindia.indiatimes.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div.contentwrapper:has(section)"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        "section",
+        "h1",
+        ".byline",
+        ".img_cptn",
+        ".icon_share_wrap",
+        "ul[itemtype=\"https://schema.org/BreadcrumbList\"]"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        ".byline"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "extend": {
+      "reporter": {
+        "selectors": [
+          "div.byline"
+        ],
+        "allow_multiple": false,
+        "default_cleaner": false
+      }
+    }
+  },
+  {
+    "domain": "www.jnsa.org",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "#wgtitle h2"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "#main_area"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        "#pankuzu",
+        "#side"
+      ],
+      "transforms": {}
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "excerpt": {
+      "selectors": [
+        [
+          "meta[name=\"og:description\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "uproxx.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "div.entry-header h1"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        [
+          "meta[name=\"qc:author\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".entry-content"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {
+        "div.image": {
+          "type": "tag",
+          "value": "figure"
+        },
+        "div.image .wp-media-credit": {
+          "type": "tag",
+          "value": "figcaption"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "next_page_url": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "excerpt": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "techlog.iij.ad.jp",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1.entry-title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "a[rel=\"author\"]"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div.entry-content"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".wp_social_bookmarking_light"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "time.entry-date",
+          "datetime"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.polygon.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1.article-header-title",
+        "h1[class*='article']",
+        "h1",
+        [
+          "meta[property=\"og:title\"]",
+          "content"
+        ],
+        [
+          "meta[name=\"twitter:title\"]",
+          "content"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        ".article-author",
+        ".meta_txt.article-author",
+        ".w-author-name .article-author",
+        [
+          "meta[name=\"author\"]",
+          "content"
+        ],
+        [
+          "meta[property=\"article:author\"]",
+          "content"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        [
+          "#article-body .content-block-regular",
+          "#article-body > p"
+        ],
+        "#article-body",
+        ".article-body",
+        "article.w-article .article-body",
+        "main .w-article",
+        ".entry-content",
+        ".post-content"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".w-directory-warning",
+        "nav.article-directory-sidenav",
+        ".sidenav-level",
+        ".sidenav-item",
+        ".directory-warning",
+        "a.directory-warning",
+        ".article-footer-nav",
+        ".pagination-nav",
+        ".article-nav",
+        "[class*='ad-']",
+        "[id*='ad-']",
+        ".advertisement",
+        ".promo",
+        ".social-share",
+        ".share-buttons",
+        ".w-sharing-copy",
+        ".follow-container",
+        ".w-follow-btn",
+        ".w-like-btn",
+        ".option-btn",
+        ".btn-fab",
+        ".disqus-load-btn",
+        ".w-related-content",
+        ".w-header-related-feed",
+        ".section-header",
+        ".section-title",
+        ".display-card-title",
+        ".display-card",
+        ".w-display-card-content",
+        ".article-header-complementary",
+        ".sidebar-tabs",
+        ".tabs-ul",
+        ".tabs-header",
+        ".tab-content",
+        ".sidebar-el-content",
+        ".related-articles",
+        ".newsletter-signup",
+        ".email-signup",
+        ".w-heading-options",
+        ".w-header-user-box",
+        ".user-box-title",
+        ".article-header-data",
+        ".comments-section",
+        ".comment-form",
+        "#disqus_thread",
+        ".article-comments",
+        "[class*='trending']",
+        "[class*='popular']",
+        "[id*='trending']",
+        "[id*='popular']",
+        ".article-header-complementary",
+        ".w-login",
+        ".valnet-login",
+        ".w-valnet-login",
+        "[id*='login']",
+        ".article-header-bg",
+        ".thread-option",
+        ".fab-label",
+        "script",
+        "noscript",
+        "style",
+        "img.c-dynamic-image"
+      ],
+      "transforms": {
+        "noscript": {
+          "type": "noop"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[property=\"article:published_time\"]",
+          "content"
+        ],
+        [
+          "meta[property=\"og:published_time\"]",
+          "content"
+        ],
+        ".article-date",
+        ".meta_txt.article-date"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[property=\"og:image\"]",
+          "content"
+        ],
+        [
+          "meta[name=\"twitter:image\"]",
+          "content"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        "header p",
+        ".article-excerpt",
+        [
+          "meta[name=\"description\"]",
+          "content"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.reddit.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "div[data-test-id=\"post-content\"] h1",
+        "div[data-test-id=\"post-content\"] h2"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "div[data-test-id=\"post-content\"] a[href*=\"user/\"]"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div[data-test-id=\"post-content\"] p",
+        [
+          "div[data-test-id=\"post-content\"] a[target=\"_blank\"]:not([data-click-id=\"timestamp\"])",
+          "div[data-test-id=\"post-content\"] div[data-click-id=\"media\"]"
+        ],
+        "div[data-test-id=\"post-content\"] div[data-click-id=\"media\"]",
+        "div[data-test-id=\"post-content\"] a",
+        "div[data-test-id=\"post-content\"]"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".icon",
+        "span[id^=\"PostAwardBadges\"]",
+        "div a[data-test-id=\"comments-page-link-num-comments\"]"
+      ],
+      "transforms": {
+        "div[role=\"img\"]": {
+          "type": "noop"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        "div[data-test-id=\"post-content\"] span[data-click-id=\"timestamp\"]",
+        "div[data-test-id=\"post-content\"] a[data-click-id=\"timestamp\"]"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.al.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        [
+          "meta[name=\"title\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        [
+          "meta[name=\"article_author\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".entry-content"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article_date_original\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "bookwalker.jp",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1.p-main__title",
+        "h1.main-heading"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "div.p-author__list",
+        "div.authors"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div.p-main__information",
+        [
+          "div.main-info",
+          "div.main-cover-inner"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        "span.label.label--trial",
+        "dt.info-head.info-head--coin",
+        "dd.info-contents.info-contents--coin",
+        "div.info-notice.fn-toggleClass"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        "dl.p-information__data dd:nth-of-type(7)",
+        ".work-info .work-detail:first-of-type .work-detail-contents:last-of-type"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "timezone": "Asia/Tokyo"
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.abendblatt.de",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h2.article__header__headline"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "span.author-info__name-text"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div.article__body"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {
+        "div": {
+          "type": "noop"
+        },
+        "p": {
+          "type": "noop"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "time.teaser-stream-time",
+          "datetime"
+        ],
+        [
+          "time.article__header__date",
+          "datetime"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        [
+          "meta[name=\"description\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.cnet.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        [
+          "meta[name=\"og:title\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "span.author",
+        "a.author"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        [
+          "img.__image-lead__",
+          ".article-main-body"
+        ],
+        ".article-main-body"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {
+        "figure.image": {
+          "type": "noop"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        "time"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        ".c-head_dek",
+        ".article-dek"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "clinicaltrials.gov",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1.tr-solo_record"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "div#sponsor.tr-info-text"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div#tab-body"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".usa-alert> img"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        "div:has(> span.term[data-term=\"Last Update Posted\"])"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.fastcompany.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        [
+          "meta[name=\"author\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".post__article"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        ".post__deck"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.littlethings.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1[class*=\"PostHeader\"]",
+        "h1.post-title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "div[class^=\"PostHeader__ScAuthorNameSection\"]",
+        [
+          "meta[name=\"author\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "section[class*=\"PostMainArticle\"]",
+        ".mainContentIntro",
+        ".content-wrapper"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "next_page_url": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "excerpt": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.mentalfloss.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        [
+          "meta[name=\"og:title\"]",
+          "value"
+        ],
+        "h1.title",
+        ".title-group",
+        ".inner"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "a[data-vars-label*=\"authors\"]",
+        ".field-name-field-enhanced-authors"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "article main",
+        "div.field.field-name-body"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        "small"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ],
+        ".date-display-single"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.today.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1.article-hero-headline__htag",
+        "h1.entry-headline"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "span.byline-name",
+        [
+          "meta[name=\"author\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div.article-body__content",
+        ".entry-container"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".label-comment"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        "time[datetime]",
+        [
+          "meta[name=\"DC.date.issued\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.si.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1",
+        "h1.headline"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        [
+          "meta[name=\"author\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".m-detail--body",
+        [
+          "p",
+          ".marquee_large_2x"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".inline-thumb",
+        ".primary-message",
+        ".description",
+        ".instructions"
+      ],
+      "transforms": {
+        "noscript": {
+          "type": "noop"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"published\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "timezone": "America/New_York"
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        ".m-detail-header--dek"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "247sports.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "title",
+        "article header h1"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        ".article-cnt__author",
+        ".author"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".article-body",
+        "section.body.article"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "time[data-published]",
+          "data-published"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "takagi-hiromitsu.jp",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h3"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        [
+          "meta[name=\"author\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div.body"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[http-equiv=\"Last-Modified\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.elecom.co.jp",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "td.TableMain2"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {
+        "table": {
+          "type": "noop"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        "p.section-last"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.engadget.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        [
+          "meta[name=\"og:title\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "a[data-ylk*=\"elm:author\"]"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div[data-article-body=\"true\"]",
+        "article"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".productModule",
+        ".commerce",
+        "[class*=\"Advertisement\"]",
+        "nav",
+        "footer"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        [
+          "meta[name=\"og:description\"]",
+          "value"
+        ],
+        [
+          "meta[name=\"description\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "phpspot.org",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h3.hl"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div.entrybody"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        "h4.hl"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "format": "YYYY年MM月DD日",
+      "timezone": "Asia/Tokyo"
+    }
+  },
+  {
+    "domain": "medium.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1",
+        [
+          "meta[name=\"og:title\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        [
+          "meta[name=\"author\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "article"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        "span a",
+        "svg"
+      ],
+      "transforms": {
+        "figure": {
+          "type": "noop"
+        },
+        "iframe": {
+          "type": "noop"
+        },
+        "img": {
+          "type": "noop"
+        },
+        "section span:first-of-type": {
+          "type": "noop"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "next_page_url": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "excerpt": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.huffingtonpost.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1.headline__title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "span.author-card__details__name"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div.entry__body"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".pull-quote",
+        ".tag-cloud",
+        ".embed-asset",
+        ".below-entry",
+        ".entry-corrections",
+        "#suggested-story"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:modified_time\"]",
+          "value"
+        ],
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        "h2.headline__subtitle"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "jvndb.jvn.jp",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "#news-list"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        "div.modifytxt:nth-child(2)"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.youtube.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        [
+          "meta[name=\"title\"]",
+          "value"
+        ],
+        ".watch-title",
+        "h1.watch-title-container"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        [
+          "link[itemprop=\"name\"]",
+          "content"
+        ],
+        ".yt-user-info"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "#player-container-outer",
+        "ytd-expandable-video-description-body-renderer #description",
+        [
+          "#player-api",
+          "#description"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {
+        "#player-api": {
+          "type": "noop"
+        },
+        "#player-container-outer": {
+          "type": "noop"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[itemProp=\"datePublished\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.aol.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1.p-article__title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        [
+          "meta[name=\"author\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".article-content"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        ".p-article__byline__date"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "news.nationalgeographic.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1",
+        "h1.main-title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        ".byline-component__contributors b span"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        [
+          ".parsys.content",
+          ".__image-lead__"
+        ],
+        ".content"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".pull-quote.pull-quote--large"
+      ],
+      "transforms": {
+        ".parsys.content": {
+          "type": "noop"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        ".article__deck"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "genius.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "h2 a"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".lyrics"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[itemprop=page_data]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[itemprop=page_data]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.ndtv.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        [
+          "meta[name=\"og:title\"]",
+          "value"
+        ],
+        "h1.entry-title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "span[itemprop=\"author\"] span[itemprop=\"name\"]"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div[itemprop=\"articleBody\"]"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".highlghts_Wdgt",
+        ".ins_instory_dv_caption",
+        "input",
+        "._world-wrapper .mt20"
+      ],
+      "transforms": {
+        ".place_cont": {
+          "type": "noop"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "span[itemprop=\"dateModified\"]",
+          "content"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        "h2"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "daringfireball.net",
+    "supported_domains": [
+      "www.daringfireball.net"
+    ],
+    "title": {
+      "selectors": [
+        "title",
+        "h1",
+        "h2.entry-title",
+        "h1.entry-title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "[name='author']",
+        ".author",
+        ".byline"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div#Main",
+        ".main-content",
+        "main",
+        "article",
+        "body"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        "div#Banner",
+        "div#Sidebar",
+        "div#Footer",
+        "#SidebarMartini",
+        ".smallprint",
+        "a[href='/preferences/']",
+        "script",
+        "style",
+        "noscript",
+        "[href*='apps.apple.com']",
+        "img[src*='/martini/']",
+        ".ads",
+        ".advertisement",
+        ".sponsored"
+      ],
+      "transforms": {
+        "a": {
+          "type": "noop"
+        },
+        "p": {
+          "type": "noop"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "time",
+          "datetime"
+        ],
+        [
+          "[datetime]",
+          "datetime"
+        ],
+        "p.smallprint em"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[property='og:image']",
+          "content"
+        ],
+        [
+          "meta[name='twitter:image']",
+          "content"
+        ],
+        [
+          "meta[name='og:image']",
+          "content"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.publickey1.jp",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        ".bloggerinchief p:first-of-type",
+        "#subcol p:has(img)"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "#maincol"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        "#breadcrumbs",
+        "div.sbm",
+        "div.ad_footer"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        "div.pubdate"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "format": "YYYY年MM月DD日",
+      "timezone": "Asia/Tokyo"
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.rollingstone.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1.l-article-header__row--title",
+        "h1.content-title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "a.c-byline__link",
+        "a.content-author.tracked-offpage"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".l-article-content",
+        [
+          ".lead-container",
+          ".article-content"
+        ],
+        ".article-content"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".c-related-links-wrapper",
+        ".module-related"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ],
+        "time.content-published-date"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        "h2.l-article-header__row--lead",
+        ".content-description"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "next_page_url": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "excerpt": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.americanow.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        ".title",
+        [
+          "meta[name=\"title\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        ".byline"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        [
+          ".article-content",
+          ".image"
+        ],
+        ".body"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".article-video-wrapper",
+        ".show-for-small-only"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"publish_date\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.androidcentral.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1",
+        "h1.main-title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        [
+          "meta[name=\"parsely-author\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "#article-body"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".intro",
+        "blockquote"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        [
+          "meta[name=\"description\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "wired.jp",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1[data-testid=\"ContentHeaderHed\"]",
+        "h1.post-title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        [
+          "meta[name=\"article:author\"]",
+          "value"
+        ],
+        "p[itemprop=\"author\"]"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div[data-attribute-verso-pattern=\"article-body\"]",
+        "article.article-detail"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".post-category",
+        "time",
+        "h1.post-title",
+        ".social-area-syncer"
+      ],
+      "transforms": {
+        "img[data-original]": {
+          "type": "noop"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ],
+        [
+          "time",
+          "datetime"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        "div[class^=\"ContentHeaderDek\"]",
+        ".post-intro"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.macrumors.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1",
+        "h1.title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "article a[rel=\"author\"]",
+        ".author-url"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "article",
+        ".article"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "time",
+          "datetime"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        [
+          "meta[name=\"description\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.fool.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        [
+          "meta[name=\"author\"]",
+          "value"
+        ],
+        ".author-inline .author-name"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".tailwind-article-body",
+        ".article-content"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        "#pitch"
+      ],
+      "transforms": {
+        ".caption": {
+          "type": "tag",
+          "value": "figcaption"
+        },
+        ".caption img": {
+          "type": "noop"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"date\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        [
+          "meta[name=\"og:description\"]",
+          "value"
+        ],
+        "header h2"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "scan.netsecurity.ne.jp",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "header.arti-header h1.head"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div.arti-content.arti-content--thumbnail"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        "aside.arti-giga"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:modified_time\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        "header.arti-header p.arti-summary"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "ici.radio-canada.ca",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        [
+          "meta[name=\"dc.creator\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "section.document-content-style",
+        [
+          ".main-multimedia-item",
+          ".news-story-content"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"dc.date.created\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        "div.lead-container",
+        ".bunker-component.lead"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.ossnews.jp",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "#alpha-block h1.hxnewstitle"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "#alpha-block .section:has(h1.hxnewstitle)"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        "p.fs12"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "format": "YYYY年MM月DD日 HH:mm",
+      "timezone": "Asia/Tokyo"
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.nytimes.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1[data-testid=\"headline\"]",
+        "h1.g-headline",
+        "h1[itemprop=\"headline\"]",
+        "h1.headline",
+        "h1 .balancedHeadline"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        [
+          "meta[name=\"author\"]",
+          "value"
+        ],
+        ".g-byline",
+        ".byline",
+        [
+          "meta[name=\"byl\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div.g-blocks",
+        "section[name=\"articleBody\"]",
+        "article#story"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".ad",
+        "header#story-header",
+        ".story-body-1 .lede.video",
+        ".visually-hidden",
+        "#newsletter-promo",
+        ".promo",
+        ".comments-button",
+        ".hidden",
+        ".comments",
+        ".supplemental",
+        ".nocontent",
+        ".story-footer-links"
+      ],
+      "transforms": {
+        "img.g-lazy": {
+          "type": "noop"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ],
+        [
+          "meta[name=\"article:published\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.lemonde.fr",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1.article__title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        ".author__name"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".article__content"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        "figcaption"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"og:article:published_time\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        ".article__desc"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "weekly.ascii.jp",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "article h1",
+        "h1[itemprop=\"headline\"]"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "p.author"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div#contents_detail",
+        "div.article"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        "p.date",
+        [
+          "meta[name=\"odate\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "format": "YYYY年MM月DD日 HH:mm",
+      "timezone": "Asia/Tokyo"
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "ma.ttias.be",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        [
+          "meta[name=\"twitter:title\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        [
+          "meta[name=\"author\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".content"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {
+        "h1": {
+          "type": "noop"
+        },
+        "h2": {
+          "type": "noop"
+        },
+        "ul": {
+          "type": "noop"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.yahoo.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "header.canvas-header"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "span.provider-name"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".content-canvas"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".figure-caption"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "time.date[datetime]",
+          "datetime"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "mashable.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "header h1",
+        "h1.title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        [
+          "meta[name=\"article:author\"]",
+          "value"
+        ],
+        "span.author_name a"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "#article",
+        "section.article-content.blueprint"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {
+        ".image-credit": {
+          "type": "tag",
+          "value": "figcaption"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.rockpapershotgun.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1.title",
+        "h1",
+        [
+          "meta[property=\"og:title\"]",
+          "content"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        ".byline .author a",
+        ".byline .author",
+        [
+          "meta[name=\"author\"]",
+          "content"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".article_body_content.article-styling",
+        ".article_body_content",
+        ".article-content",
+        "article .article_body"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".inlinead",
+        ".desktop_mpu",
+        ".mpu_container",
+        ".advert_container",
+        ".leaderboard_container",
+        ".injection_placeholder",
+        "span.injection_placeholder",
+        "[data-position]",
+        ".read-next",
+        ".article_footer",
+        ".comments__link",
+        ".load-comments",
+        ".smart-slot",
+        ".sign-in-buttons",
+        ".byline",
+        ".metadata",
+        ".avatar",
+        ".published_at",
+        ".tagged_with",
+        ".author-inline",
+        "button",
+        "form",
+        ".social-sign-in-button",
+        ".tagged_with_item",
+        ".comments-bubble"
+      ],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "time",
+          "datetime"
+        ],
+        [
+          "meta[property=\"article:published_time\"]",
+          "content"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[property=\"og:image\"]",
+          "content"
+        ],
+        ".headline_image"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [
+        "p.strapline"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.bustle.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1",
+        "h1.post-page__title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "a[href*=\"profile\"]",
+        "div.content-meta__author"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "article",
+        ".post-page__body"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "time",
+          "datetime"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "next_page_url": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "excerpt": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "pastebin.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        ".username",
+        ".paste_box_line2 .t_us + a"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".source",
+        "#selectable .text"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {
+        "li": {
+          "type": "tag",
+          "value": "p"
+        },
+        "ol": {
+          "type": "tag",
+          "value": "div"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        ".date",
+        ".paste_box_line2 .t_da + span"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "getnews.jp",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "article h1"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        [
+          "meta[name=\"article:author\"]",
+          "value"
+        ],
+        "span.prof"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div.post-bodycopy"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[name=\"article:published_time\"]",
+          "value"
+        ],
+        [
+          "ul.cattag-top time",
+          "datetime"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.broadwayworld.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1[itemprop=headline]",
+        "h1.article-title"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        "span[itemprop=author]"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        "div[itemprop=articlebody]"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [],
+      "transforms": {}
+    },
+    "date_published": {
+      "selectors": [
+        [
+          "meta[itemprop=datePublished]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  },
+  {
+    "domain": "www.washingtonpost.com",
+    "supported_domains": [],
+    "title": {
+      "selectors": [
+        "h1",
+        "#topper-headline-wrapper"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "author": {
+      "selectors": [
+        ".pb-author-name"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": [
+        ".article-body"
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [
+        ".interstitial-link",
+        ".newsletter-inline-unit"
+      ],
+      "transforms": {
+        ".pb-caption": {
+          "type": "tag",
+          "value": "figcaption"
+        },
+        "div.inline-content": {
+          "type": "noop"
+        }
+      }
+    },
+    "date_published": {
+      "selectors": [
+        [
+          ".author-timestamp[itemprop=\"datePublished\"]",
+          "content"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "lead_image_url": {
+      "selectors": [
+        [
+          "meta[name=\"og:image\"]",
+          "value"
+        ]
+      ],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "dek": {
+      "selectors": [],
+      "allow_multiple": false,
+      "default_cleaner": false
+    }
+  }
+]

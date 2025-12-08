@@ -158,7 +158,10 @@ mod tests {
     #[test]
     fn test_strip_html_basic() {
         assert_eq!(strip_html("<p>Hello</p>"), "Hello");
-        assert_eq!(strip_html("<b>Bold</b> and <i>italic</i>"), "Bold and italic");
+        assert_eq!(
+            strip_html("<b>Bold</b> and <i>italic</i>"),
+            "Bold and italic"
+        );
     }
 
     #[test]

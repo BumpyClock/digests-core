@@ -38,12 +38,11 @@ fn main() -> Result<()> {
     let mut results = Vec::new();
 
     for target in &args.targets {
-        let feed_url = args
-            .feed_url
-            .clone()
-            .unwrap_or_else(|| target.clone());
+        let feed_url = args.feed_url.clone().unwrap_or_else(|| target.clone());
 
-        match load_bytes(target).and_then(|bytes| parse_feed_bytes(&bytes, &feed_url).map_err(anyhow::Error::new)) {
+        match load_bytes(target)
+            .and_then(|bytes| parse_feed_bytes(&bytes, &feed_url).map_err(anyhow::Error::new))
+        {
             Ok(feed) => results.push(json!({
                 "feed_url": feed_url,
                 "ok": true,
@@ -73,7 +72,10 @@ fn main() -> Result<()> {
             json!({})
         }
     } else {
-        let parsed = results.iter().filter(|r| r.get("ok").and_then(|v| v.as_bool()) == Some(true)).count();
+        let parsed = results
+            .iter()
+            .filter(|r| r.get("ok").and_then(|v| v.as_bool()) == Some(true))
+            .count();
         let failed = results.len() - parsed;
         json!({
             "feeds": results,

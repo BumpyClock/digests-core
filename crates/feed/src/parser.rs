@@ -1,16 +1,17 @@
 // ABOUTME: Feed parsing implementation using feed-rs.
 // ABOUTME: Maps feed-rs types to internal models with iTunes metadata extraction.
 
-use chrono::Utc;
-use feed_rs::model::{Entry, Feed as FeedRsFeed, Link, Person};
-use std::collections::HashSet;
 use crate::error::FeedError;
 use crate::html_utils::strip_html;
 use crate::image_utils::extract_first_image;
 use crate::itunes_ext::{
-    is_explicit, parse_item_duration, parse_itunes_extensions, ItemITunesExt, ParsedITunesExtensions,
+    is_explicit, parse_item_duration, parse_itunes_extensions, ItemITunesExt,
+    ParsedITunesExtensions,
 };
 use crate::models::{Author, Enclosure, Feed, FeedItem};
+use chrono::Utc;
+use feed_rs::model::{Entry, Feed as FeedRsFeed, Link, Person};
+use std::collections::HashSet;
 
 /// Parses feed bytes into a Feed struct.
 ///
@@ -276,7 +277,11 @@ fn map_entry(
     let content = entry
         .content
         .as_ref()
-        .and_then(|c| c.body.clone().or_else(|| c.src.as_ref().map(|l| l.href.clone())))
+        .and_then(|c| {
+            c.body
+                .clone()
+                .or_else(|| c.src.as_ref().map(|l| l.href.clone()))
+        })
         .unwrap_or_else(|| summary.clone());
 
     // Extract enclosures from links (rel=enclosure) and media.content, deduplicated
@@ -292,14 +297,8 @@ fn map_entry(
     let explicit_flag = extract_explicit_flag(entry, item_ext);
 
     // Select image/thumbnail with priority cascade
-    let (image_url, thumbnail_url) = select_image_thumbnail(
-        entry,
-        &enclosures,
-        &content,
-        &summary,
-        &item_url,
-        item_ext,
-    );
+    let (image_url, thumbnail_url) =
+        select_image_thumbnail(entry, &enclosures, &content, &summary, &item_url, item_ext);
 
     // Extract author (iTunes author if no standard author)
     let author = extract_entry_author(entry, item_ext);

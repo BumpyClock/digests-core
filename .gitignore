@@ -21,3 +21,5 @@ Thumbs.db
 # Backup files
 *.bak
 *.backup
+
+.ai_agents/coding-agent-prompts/

@@ -104,7 +104,10 @@ mod html_utils_tests {
     #[test]
     fn test_strip_html_decodes_entities() {
         assert_eq!(strip_html("<p>Tom &amp; Jerry</p>"), "Tom & Jerry");
-        assert_eq!(strip_html("&lt;script&gt;alert&lt;/script&gt;"), "<script>alert</script>");
+        assert_eq!(
+            strip_html("&lt;script&gt;alert&lt;/script&gt;"),
+            "<script>alert</script>"
+        );
     }
 
     #[test]
@@ -136,12 +139,16 @@ mod image_utils_tests {
     fn test_is_valid_image_url_accepts_normal() {
         assert!(is_valid_image_url("https://example.com/photo.jpg"));
         assert!(is_valid_image_url("https://cdn.example.com/image.png"));
-        assert!(is_valid_image_url("https://example.com/uploads/banner.webp"));
+        assert!(is_valid_image_url(
+            "https://example.com/uploads/banner.webp"
+        ));
     }
 
     #[test]
     fn test_is_valid_image_url_rejects_tracking_pixel() {
-        assert!(!is_valid_image_url("https://example.com/tracking/pixel.gif"));
+        assert!(!is_valid_image_url(
+            "https://example.com/tracking/pixel.gif"
+        ));
         assert!(!is_valid_image_url("https://analytics.example.com/img.png"));
         assert!(!is_valid_image_url("https://example.com/beacon.gif"));
         assert!(!is_valid_image_url("https://example.com/spacer.gif"));
@@ -156,14 +163,24 @@ mod image_utils_tests {
 
     #[test]
     fn test_resolve_image_url_relative_with_base() {
-        let result = resolve_image_url("/images/photo.jpg", Some("https://example.com/article/123"));
-        assert_eq!(result, Some("https://example.com/images/photo.jpg".to_string()));
+        let result =
+            resolve_image_url("/images/photo.jpg", Some("https://example.com/article/123"));
+        assert_eq!(
+            result,
+            Some("https://example.com/images/photo.jpg".to_string())
+        );
     }
 
     #[test]
     fn test_resolve_image_url_relative_path() {
-        let result = resolve_image_url("../images/photo.jpg", Some("https://example.com/articles/tech/post.html"));
-        assert_eq!(result, Some("https://example.com/articles/images/photo.jpg".to_string()));
+        let result = resolve_image_url(
+            "../images/photo.jpg",
+            Some("https://example.com/articles/tech/post.html"),
+        );
+        assert_eq!(
+            result,
+            Some("https://example.com/articles/images/photo.jpg".to_string())
+        );
     }
 
     #[test]
@@ -181,14 +198,20 @@ mod image_utils_tests {
             <img src="https://example.com/real-image.jpg">
         "#;
         let result = extract_first_image(html, None);
-        assert_eq!(result, Some("https://example.com/real-image.jpg".to_string()));
+        assert_eq!(
+            result,
+            Some("https://example.com/real-image.jpg".to_string())
+        );
     }
 
     #[test]
     fn test_extract_first_image_resolves_relative() {
         let html = r#"<img src="/uploads/photo.jpg">"#;
         let result = extract_first_image(html, Some("https://blog.example.com/posts/1"));
-        assert_eq!(result, Some("https://blog.example.com/uploads/photo.jpg".to_string()));
+        assert_eq!(
+            result,
+            Some("https://blog.example.com/uploads/photo.jpg".to_string())
+        );
     }
 
     #[test]

@@ -1,0 +1,38 @@
+[
+  {
+    "domain": "example.com",
+    "supported_domains": ["www.example.com"],
+    "title": {
+      "selectors": ["h1.title"],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": ["article"],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": [".ad"],
+      "transforms": {
+        "span.old": { "type": "tag", "value": "strong" },
+        "noscript": { "type": "noscript_to_div" },
+        "div.unwrap": { "type": "unwrap" },
+        "img": { "type": "move_attr", "from": "data-src", "to": "src" }
+      }
+    }
+  },
+  {
+    "domain": "sample.org",
+    "supported_domains": [],
+    "title": {
+      "selectors": ["title"],
+      "allow_multiple": false,
+      "default_cleaner": false
+    },
+    "content": {
+      "selectors": ["div.post"],
+      "allow_multiple": false,
+      "default_cleaner": false,
+      "clean": []
+    }
+  }
+]

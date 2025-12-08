@@ -48,7 +48,7 @@ pub struct ParsedITunesExtensions {
 pub fn parse_itunes_extensions(data: &[u8]) -> ParsedITunesExtensions {
     let mut result = ParsedITunesExtensions::default();
     let mut reader = Reader::from_reader(data);
-    reader.trim_text(true);
+    reader.config_mut().trim_text(true);
 
     let mut buf = Vec::new();
 
@@ -107,7 +107,7 @@ pub fn parse_itunes_extensions(data: &[u8]) -> ParsedITunesExtensions {
             }
             Ok(Event::Text(ref e)) => {
                 if let Some(ref elem) = current_element {
-                    let text = e.unescape().map(|s| s.to_string()).unwrap_or_default();
+                    let text = e.decode().map(|s| s.into_owned()).unwrap_or_default();
                     if !text.is_empty() {
                         match elem.as_str() {
                             "guid" if in_item => {
@@ -246,7 +246,10 @@ mod tests {
 
         // Feed level
         assert!(ext.feed.has_itunes_namespace);
-        assert_eq!(ext.feed.image_href, Some("https://podcast/feed-img.jpg".to_string()));
+        assert_eq!(
+            ext.feed.image_href,
+            Some("https://podcast/feed-img.jpg".to_string())
+        );
         assert_eq!(ext.feed.author, Some("Feed Author".to_string()));
         assert_eq!(ext.feed.explicit, Some("yes".to_string()));
 
@@ -254,7 +257,10 @@ mod tests {
         let item1 = ext.items.get("ep-1").unwrap();
         assert_eq!(item1.duration, Some("45:30".to_string()));
         assert_eq!(item1.explicit, Some("yes".to_string()));
-        assert_eq!(item1.image_href, Some("https://podcast/ep1-img.jpg".to_string()));
+        assert_eq!(
+            item1.image_href,
+            Some("https://podcast/ep1-img.jpg".to_string())
+        );
         assert_eq!(item1.author, Some("Episode Author".to_string()));
 
         let item2 = ext.items.get("ep-2").unwrap();
