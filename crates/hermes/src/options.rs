@@ -48,6 +48,7 @@ pub struct Options {
     pub http_client: Option<reqwest::Client>,
     pub headers: HashMap<String, String>,
     pub registry: Option<ExtractorRegistry>,
+    pub follow_next: bool,
 }
 
 impl Default for Options {
@@ -60,6 +61,7 @@ impl Default for Options {
             http_client: None,
             headers: HashMap::new(),
             registry: None,
+            follow_next: false,
         }
     }
 }
@@ -117,6 +119,15 @@ impl ClientBuilder {
     /// Set a custom extractor registry.
     pub fn registry(mut self, reg: ExtractorRegistry) -> Self {
         self.opts.registry = Some(reg);
+        self
+    }
+
+    /// Enable following next_page_url to fetch and append content from the next page.
+    ///
+    /// When enabled and next_page_url is detected, the client will fetch one additional
+    /// page and append its content to the result. Only one hop is followed.
+    pub fn follow_next(mut self, follow: bool) -> Self {
+        self.opts.follow_next = follow;
         self
     }
 

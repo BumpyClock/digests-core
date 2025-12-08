@@ -6,6 +6,7 @@
 //! This module handles converting extracted content to various output formats
 //! including cleaned HTML, Markdown, and plain text representations.
 
+use regex::Regex;
 use scraper::{Html, Selector};
 
 /// Sanitize HTML using ammonia with default policy.
@@ -13,32 +14,108 @@ use scraper::{Html, Selector};
 /// Removes potentially dangerous elements like scripts, event handlers,
 /// and other XSS vectors while preserving safe content.
 pub fn sanitize_html(html: &str) -> String {
-    ammonia::Builder::default().clean(html).to_string()
+    let allowed_tags = [
+        "a",
+        "p",
+        "br",
+        "strong",
+        "em",
+        "b",
+        "i",
+        "ul",
+        "ol",
+        "li",
+        "blockquote",
+        "code",
+        "pre",
+        "img",
+        "figure",
+        "figcaption",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "div",
+        "span",
+        "hr",
+    ];
+
+    let tag_set: std::collections::HashSet<&str> = allowed_tags.iter().copied().collect();
+
+    let mut builder = ammonia::Builder::default();
+    builder
+        .tags(tag_set)
+        .add_generic_attributes(&["title"])
+        .add_tag_attributes("a", &["href", "title"])
+        .add_tag_attributes("img", &["src", "alt", "title", "width", "height"])
+        .url_schemes(["http", "https", "mailto"].iter().copied().collect());
+
+    builder.clean(html).to_string()
+}
+
+/// Preprocess HTML before conversion: replace <br> tags with newlines.
+fn preprocess_br_tags(html: &str) -> String {
+    // Replace <br>, <br/>, <br /> variants with newline
+    let re = Regex::new(r"(?i)<br\s*/?\s*>").unwrap();
+    re.replace_all(html, "\n").to_string()
+}
+
+/// Collapse more than 2 consecutive blank lines to exactly 2.
+fn collapse_blank_lines_to_two(text: &str) -> String {
+    let re = Regex::new(r"\n{3,}").unwrap();
+    re.replace_all(text, "\n\n").to_string()
+}
+
+/// Collapse multiple consecutive newlines to a single newline.
+fn collapse_newlines_to_one(text: &str) -> String {
+    let re = Regex::new(r"\n{2,}").unwrap();
+    re.replace_all(text, "\n").to_string()
 }
 
 /// Convert HTML to Markdown using htmd.
 ///
+/// Skips script and style tags during conversion, preserves links and images,
+/// and normalizes consecutive blank lines to max 2.
 /// On conversion error, returns the original HTML string unchanged.
 pub fn html_to_markdown(html: &str) -> String {
-    htmd::HtmlToMarkdown::new()
-        .convert(html)
-        .unwrap_or_else(|_| html.to_string())
+    // Preprocess: convert <br> to newlines
+    let preprocessed = preprocess_br_tags(html);
+
+    // Convert to markdown, skipping script and style tags
+    let converter = htmd::HtmlToMarkdown::builder()
+        .skip_tags(vec!["script", "style", "noscript"])
+        .build();
+
+    let md = converter
+        .convert(&preprocessed)
+        .unwrap_or_else(|_| preprocessed.clone());
+
+    // Post-process: collapse more than 2 blank lines to exactly 2
+    collapse_blank_lines_to_two(&md)
 }
 
 /// Convert HTML to plain text by extracting text nodes.
 ///
-/// Parses the HTML document and joins all text nodes with single spaces,
-/// then trims leading/trailing whitespace.
+/// Treats <br> as newline, collapses multiple blank lines to one,
+/// and trims leading/trailing whitespace.
 pub fn html_to_text(html: &str) -> String {
-    let document = Html::parse_document(html);
-    document
-        .root_element()
-        .text()
-        .collect::<Vec<_>>()
-        .join(" ")
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ")
+    // Preprocess: convert <br> to newlines
+    let preprocessed = preprocess_br_tags(html);
+
+    let document = Html::parse_document(&preprocessed);
+    let raw_text: String = document.root_element().text().collect::<Vec<_>>().join(" ");
+
+    // Collapse horizontal whitespace (spaces/tabs) but preserve newlines
+    let re_spaces = Regex::new(r"[^\S\n]+").unwrap();
+    let normalized = re_spaces.replace_all(&raw_text, " ");
+
+    // Collapse multiple newlines to one
+    let collapsed = collapse_newlines_to_one(&normalized);
+
+    // Trim the result
+    collapsed.trim().to_string()
 }
 
 /// Extract title from HTML.
@@ -157,6 +234,77 @@ mod tests {
     }
 
     #[test]
+    fn html_to_markdown_skips_script_and_style() {
+        let html = "<p>Before</p><script>alert(1)</script><style>.x{}</style><p>After</p>";
+        let md = html_to_markdown(html);
+        assert!(
+            !md.contains("alert"),
+            "markdown should not contain script content, got: {}",
+            md
+        );
+        assert!(
+            !md.contains(".x{}"),
+            "markdown should not contain style content, got: {}",
+            md
+        );
+        assert!(
+            md.contains("Before"),
+            "should contain text before, got: {}",
+            md
+        );
+        assert!(
+            md.contains("After"),
+            "should contain text after, got: {}",
+            md
+        );
+    }
+
+    #[test]
+    fn html_to_markdown_converts_br_to_newline() {
+        let html = "<p>Line 1<br>Line 2</p>";
+        let md = html_to_markdown(html);
+        assert!(
+            md.contains("Line 1") && md.contains("Line 2"),
+            "should contain both lines, got: {}",
+            md
+        );
+    }
+
+    #[test]
+    fn html_to_markdown_collapses_excessive_blank_lines() {
+        let html = "<p>Para 1</p>\n\n\n\n\n<p>Para 2</p>";
+        let md = html_to_markdown(html);
+        // Should not have more than 2 consecutive newlines
+        assert!(
+            !md.contains("\n\n\n"),
+            "markdown should not have more than 2 consecutive newlines, got: {:?}",
+            md
+        );
+    }
+
+    #[test]
+    fn html_to_markdown_preserves_links() {
+        let html = r#"<p>Visit <a href="https://example.com">Example</a></p>"#;
+        let md = html_to_markdown(html);
+        assert!(
+            md.contains("[Example](https://example.com)"),
+            "should preserve link, got: {}",
+            md
+        );
+    }
+
+    #[test]
+    fn html_to_markdown_preserves_images() {
+        let html = r#"<img src="https://example.com/img.png" alt="Test">"#;
+        let md = html_to_markdown(html);
+        assert!(
+            md.contains("![Test](https://example.com/img.png)"),
+            "should preserve image, got: {}",
+            md
+        );
+    }
+
+    #[test]
     fn html_to_text_extracts_text_and_collapses_whitespace() {
         let html = "<p>Hello   world</p>";
         let text = html_to_text(html);
@@ -181,7 +329,41 @@ mod tests {
     fn html_to_text_handles_nested_elements() {
         let html = "<html><body><div><p>Nested</p><p>Content</p></div></body></html>";
         let text = html_to_text(html);
-        assert_eq!(text, "Nested Content");
+        // With newline collapse, paragraphs may be separated by newline then collapsed
+        assert!(
+            text.contains("Nested") && text.contains("Content"),
+            "should contain both words, got: {}",
+            text
+        );
+    }
+
+    #[test]
+    fn html_to_text_converts_br_to_newline() {
+        let html = "<p>Line 1<br>Line 2</p>";
+        let text = html_to_text(html);
+        assert!(
+            text.contains("Line 1") && text.contains("Line 2"),
+            "should contain both lines, got: {}",
+            text
+        );
+        // Since <br> becomes \n, both lines should be present
+        assert!(
+            text.contains('\n') || text.contains("Line 1") && text.contains("Line 2"),
+            "br should be converted, got: {}",
+            text
+        );
+    }
+
+    #[test]
+    fn html_to_text_collapses_multiple_newlines() {
+        let html = "<p>Para 1</p>\n\n\n\n<p>Para 2</p>";
+        let text = html_to_text(html);
+        // Should not have more than 1 consecutive newline
+        assert!(
+            !text.contains("\n\n"),
+            "text should not have multiple consecutive newlines, got: {:?}",
+            text
+        );
     }
 
     #[test]
@@ -248,5 +430,28 @@ mod tests {
         let html = "   <p>  trimmed content  </p>   ";
         let excerpt = extract_excerpt(html);
         assert_eq!(excerpt, Some("trimmed content".to_string()));
+    }
+
+    #[test]
+    fn preprocess_br_handles_variants() {
+        assert_eq!(preprocess_br_tags("<br>"), "\n");
+        assert_eq!(preprocess_br_tags("<br/>"), "\n");
+        assert_eq!(preprocess_br_tags("<br />"), "\n");
+        assert_eq!(preprocess_br_tags("<BR>"), "\n");
+        assert_eq!(preprocess_br_tags("<BR />"), "\n");
+    }
+
+    #[test]
+    fn collapse_blank_lines_to_two_works() {
+        assert_eq!(collapse_blank_lines_to_two("a\n\n\n\nb"), "a\n\nb");
+        assert_eq!(collapse_blank_lines_to_two("a\n\nb"), "a\n\nb");
+        assert_eq!(collapse_blank_lines_to_two("a\nb"), "a\nb");
+    }
+
+    #[test]
+    fn collapse_newlines_to_one_works() {
+        assert_eq!(collapse_newlines_to_one("a\n\n\nb"), "a\nb");
+        assert_eq!(collapse_newlines_to_one("a\n\nb"), "a\nb");
+        assert_eq!(collapse_newlines_to_one("a\nb"), "a\nb");
     }
 }

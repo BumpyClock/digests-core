@@ -3,6 +3,10 @@ name = "digests-hermes"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "hermes"
+path = "src/bin/hermes.rs"
+
 [dependencies]
 anyhow = "1"
 thiserror = "2.0.17"
@@ -16,13 +20,18 @@ tokio = { version = "1.39", features = ["macros", "rt-multi-thread", "time"] }
 chrono = { version = "0.4", features = ["serde", "clock"] }
 ammonia = "4.1.2"
 htmd = "0.5.0"
+regex = "1"
 chardetng = "0.1"
 encoding_rs = "0.8"
 futures = "0.3"
 ipnet = "2"
 bytes = "1"
 dateparser = "0.2"
+clap = { version = "4", features = ["derive"] }
 
 [dev-dependencies]
 pretty_assertions = "1"
 httpmock = "0.8.2"
+assert_cmd = "2"
+predicates = "3"
+tempfile = "3"

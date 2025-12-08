@@ -6,6 +6,8 @@ use scraper::{Html, Selector};
 
 use crate::error::ParseError;
 use crate::extractors::content::extract_content_first_html;
+#[cfg(test)]
+use crate::extractors::custom::ContentExtractor;
 use crate::extractors::custom::{ExtractorRegistry, FieldExtractor, SelectorSpec};
 use crate::extractors::fields::{
     extract_attr_first, extract_field_text_single, extract_first_attr, extract_meta_content,
@@ -19,6 +21,10 @@ use crate::formats::{
 use crate::options::{ClientBuilder, ContentType, Options};
 use crate::resource::{fetch, FetchOptions};
 use crate::result::{word_count, ParseResult};
+#[cfg(test)]
+use std::collections::HashMap;
+use std::net::ToSocketAddrs;
+use url::Url;
 
 /// Build a generic title FieldExtractor with fallback selectors.
 ///
@@ -60,14 +66,73 @@ const GENERIC_CONTENT_SELECTORS: &[&str] = &[
     "div.entry-content",
 ];
 
-/// Choose the best generic content element by text length.
+/// Minimum text length required to accept a candidate element.
+const MIN_CONTENT_TEXT_LENGTH: usize = 80;
+
+/// Score a candidate element using readability-style heuristics.
 ///
-/// Iterates through candidate selectors and picks the element with the longest
-/// text content (measured by html_to_text length). Returns None if no candidates
-/// match or all have zero-length text.
-fn choose_best_generic_content(doc: &Html) -> Option<String> {
+/// Scoring formula:
+/// - text_len = length of plain text extracted from inner HTML
+/// - link_density = total text length inside <a> tags / text_len (0 if no text)
+/// - tag_penalty = 10 * (count of form + nav + aside descendants)
+/// - score = text_len * (1.0 - link_density) - tag_penalty
+///
+/// Returns (score, text_len) tuple.
+fn score_candidate_element(element: &scraper::ElementRef) -> (f64, usize) {
+    let inner = element.inner_html();
+    let text = html_to_text(&inner);
+    let text_len = text.len();
+
+    if text_len == 0 {
+        return (0.0, 0);
+    }
+
+    // Calculate link density: total text inside <a> tags / total text
+    let link_text_len: usize = element
+        .select(&Selector::parse("a").unwrap())
+        .map(|a| {
+            let a_text: String = a.text().collect::<Vec<_>>().join(" ");
+            a_text
+                .split_whitespace()
+                .collect::<Vec<_>>()
+                .join(" ")
+                .len()
+        })
+        .sum();
+
+    let link_density = link_text_len as f64 / text_len as f64;
+
+    // Count penalty tags: form, nav, aside
+    let penalty_count: usize = ["form", "nav", "aside"]
+        .iter()
+        .filter_map(|tag| Selector::parse(tag).ok())
+        .map(|sel| element.select(&sel).count())
+        .sum();
+
+    let tag_penalty = (penalty_count * 10) as f64;
+
+    let p_count = Selector::parse("p")
+        .ok()
+        .map(|sel| element.select(&sel).count())
+        .unwrap_or(0);
+
+    let score = (text_len as f64) * (1.0 - link_density) - tag_penalty + 20.0 * p_count as f64;
+
+    (score, text_len)
+}
+
+/// Score and select the best generic content element using readability-style heuristics.
+///
+/// Iterates through candidate selectors and scores each element based on:
+/// - Text length (longer is better)
+/// - Link density (lower is better - penalizes navigation-heavy content)
+/// - Penalty tags (form, nav, aside descendants reduce score)
+///
+/// Requires minimum text length of 80 characters to accept a candidate.
+/// Returns None if no candidates meet the threshold, triggering body fallback.
+fn score_generic_content(doc: &Html) -> Option<String> {
     let mut best_html: Option<String> = None;
-    let mut best_score: usize = 0;
+    let mut best_score: f64 = f64::NEG_INFINITY;
 
     for &selector_str in GENERIC_CONTENT_SELECTORS {
         let selector = match Selector::parse(selector_str) {
@@ -76,22 +141,22 @@ fn choose_best_generic_content(doc: &Html) -> Option<String> {
         };
 
         for element in doc.select(&selector) {
-            let inner = element.inner_html();
-            let text = html_to_text(&inner);
-            let score = text.len();
+            let (score, text_len) = score_candidate_element(&element);
 
+            // Require minimum text length
+            if text_len < MIN_CONTENT_TEXT_LENGTH {
+                continue;
+            }
+
+            // Keep first encountered in DOM order when scores are equal (> not >=)
             if score > best_score {
                 best_score = score;
-                best_html = Some(inner);
+                best_html = Some(element.inner_html());
             }
         }
     }
 
-    if best_score > 0 {
-        best_html
-    } else {
-        None
-    }
+    best_html
 }
 
 /// Generic author selectors in priority order.
@@ -402,11 +467,95 @@ fn is_rtl_char(ch: char) -> bool {
         || (0xFE70..=0xFEFF).contains(&code)
 }
 
+/// Extract articleBody from JSON-LD when HTML content is missing or too short.
+fn extract_article_body_from_ld_json(doc: &Html) -> Option<String> {
+    let selector = Selector::parse("script[type='application/ld+json']").ok()?;
+    for script in doc.select(&selector) {
+        let text = script.text().collect::<String>();
+        if let Ok(value) = serde_json::from_str::<serde_json::Value>(&text) {
+            if let Some(body) = find_article_body(&value) {
+                if !body.trim().is_empty() {
+                    return Some(body);
+                }
+            }
+        }
+    }
+    None
+}
+
+fn find_article_body(value: &serde_json::Value) -> Option<String> {
+    match value {
+        serde_json::Value::Object(map) => {
+            let mut is_article = false;
+            if let Some(t) = map.get("@type") {
+                is_article = matches_type(t, "NewsArticle") || matches_type(t, "BlogPosting");
+            }
+            if is_article {
+                if let Some(body) = map.get("articleBody") {
+                    if let Some(s) = body.as_str() {
+                        return Some(s.to_string());
+                    }
+                    if let Some(arr) = body.as_array() {
+                        let joined = arr
+                            .iter()
+                            .filter_map(|v| v.as_str())
+                            .collect::<Vec<_>>()
+                            .join("\n\n");
+                        if !joined.is_empty() {
+                            return Some(joined);
+                        }
+                    }
+                }
+            }
+            // Recurse into common graph holders
+            for key in [
+                "@graph",
+                "graph",
+                "mainEntity",
+                "mainEntityOfPage",
+                "itemListElement",
+            ] {
+                if let Some(v) = map.get(key) {
+                    if let Some(res) = find_article_body(v) {
+                        return Some(res);
+                    }
+                }
+            }
+            // Recurse values
+            for v in map.values() {
+                if let Some(res) = find_article_body(v) {
+                    return Some(res);
+                }
+            }
+            None
+        }
+        serde_json::Value::Array(arr) => {
+            for v in arr {
+                if let Some(res) = find_article_body(v) {
+                    return Some(res);
+                }
+            }
+            None
+        }
+        _ => None,
+    }
+}
+
+fn matches_type(value: &serde_json::Value, expected: &str) -> bool {
+    match value {
+        serde_json::Value::String(s) => s.eq_ignore_ascii_case(expected),
+        serde_json::Value::Array(arr) => arr.iter().any(|v| matches_type(v, expected)),
+        _ => false,
+    }
+}
+
 /// Extract next page URL.
 ///
 /// Priority:
 /// 1. Custom extractor's next_page_url field if available
 /// 2. <link rel="next"> href attribute
+/// 3. .next a[href] (common pagination pattern)
+/// 4. .pagination a[rel=next][href]
 fn extract_next_page_url(doc: &Html, custom: Option<&FieldExtractor>) -> Option<String> {
     // Try custom extractor first
     if let Some(fe) = custom {
@@ -416,7 +565,17 @@ fn extract_next_page_url(doc: &Html, custom: Option<&FieldExtractor>) -> Option<
     }
 
     // Fall back to link[rel=next] href
-    extract_attr_first(doc, "link[rel='next']", "href")
+    if let Some(url) = extract_attr_first(doc, "link[rel='next']", "href") {
+        return Some(url);
+    }
+
+    // Try .next a[href] pattern (common pagination)
+    if let Some(url) = extract_attr_first(doc, ".next a[href]", "href") {
+        return Some(url);
+    }
+
+    // Try .pagination a[rel=next][href] pattern
+    extract_attr_first(doc, ".pagination a[rel='next'][href]", "href")
 }
 
 /// The main Hermes client for parsing web pages.
@@ -435,7 +594,42 @@ impl Client {
     /// Create a new Client with the given options.
     pub fn new(opts: Options) -> Self {
         let http_client = opts.http_client.clone().unwrap_or_else(|| {
+            let allow_private = opts.allow_private_networks;
+            let redirect_policy = reqwest::redirect::Policy::custom(move |attempt| {
+                let next = attempt.url().clone();
+                if !allow_private {
+                    if let Some(host) = next.host_str() {
+                        let scheme = next.scheme();
+                        let port = next
+                            .port()
+                            .unwrap_or(if scheme == "https" { 443 } else { 80 });
+                        if let Ok(ip) = host.parse::<std::net::IpAddr>() {
+                            if crate::resource::is_private_ip(&ip) {
+                                return attempt.error("redirect to private IP blocked");
+                            }
+                        } else {
+                            // synchronous DNS resolution to avoid async in redirect policy
+                            let addr_str = format!("{}:{}", host, port);
+                            match addr_str.to_socket_addrs() {
+                                Ok(addrs) => {
+                                    for sa in addrs {
+                                        if crate::resource::is_private_ip(&sa.ip()) {
+                                            return attempt.error("redirect to private IP blocked");
+                                        }
+                                    }
+                                }
+                                Err(_) => {
+                                    return attempt.error("DNS lookup failed during redirect");
+                                }
+                            }
+                        }
+                    }
+                }
+                attempt.follow()
+            });
+
             reqwest::Client::builder()
+                .redirect(redirect_policy)
                 .user_agent(&opts.user_agent)
                 .timeout(opts.timeout)
                 .cookie_store(true)
@@ -509,11 +703,20 @@ impl Client {
             .unwrap_or_default();
 
         // Extract content: prefer custom extractor if available, then best generic, then body
-        let content_html = custom_extractor
+        let mut content_html = custom_extractor
             .and_then(|ce| ce.content.as_ref())
             .and_then(|ce| extract_content_first_html(&doc, ce))
-            .or_else(|| choose_best_generic_content(&doc))
+            .or_else(|| score_generic_content(&doc))
             .unwrap_or_else(|| extract_body_inner_html(&doc));
+
+        // Fallback: if content is too short, try JSON-LD articleBody
+        let mut content_plain = html_to_text(&content_html);
+        if content_plain.trim().len() < 500 {
+            if let Some(ld_body) = extract_article_body_from_ld_json(&doc) {
+                content_html = ld_body;
+                content_plain = html_to_text(&content_html);
+            }
+        }
 
         // Sanitize the extracted HTML before conversion
         let sanitized_html = sanitize_html(&content_html);
@@ -545,7 +748,7 @@ impl Client {
         let video_metadata = extract_video_metadata(&doc);
 
         // Extract next page URL
-        let next_page_url = extract_next_page_url(
+        let mut next_page_url = extract_next_page_url(
             &doc,
             custom_extractor.and_then(|ce| ce.next_page_url.as_ref()),
         );
@@ -556,14 +759,113 @@ impl Client {
         // Extract direction using plain text for RTL detection
         let direction = Some(extract_direction(&doc, &plain_text));
 
-        // Calculate word count from plain text of raw HTML
-        let wc = word_count(&plain_text);
-
         // Convert content based on requested content type (using sanitized HTML)
-        let content = match self.opts.content_type {
+        let mut final_content = match self.opts.content_type {
             ContentType::Markdown => html_to_markdown(&sanitized_html),
             ContentType::Text => html_to_text(&sanitized_html),
-            ContentType::Html => sanitized_html,
+            ContentType::Html => sanitized_html.clone(),
+        };
+
+        // Store sanitized HTML for potential concatenation
+        let mut final_sanitized_html = sanitized_html;
+
+        // Track whether we actually followed a next page
+        let mut did_follow = false;
+
+        // Multi-page follow: if enabled and next_page_url is present, fetch one more page
+        let mut next_next_page_url: Option<String> = None;
+
+        if self.opts.follow_next {
+            if let Some(ref next_url) = next_page_url {
+                // Resolve relative URL against the current page URL
+                if let Ok(base_url) = Url::parse(&fetch_result.final_url) {
+                    if let Ok(resolved_url) = base_url.join(next_url) {
+                        // Fetch the next page
+                        if let Ok(next_fetch_result) =
+                            fetch(&self.http_client, resolved_url.as_str(), &fetch_opts).await
+                        {
+                            if let Ok(next_raw_html) = next_fetch_result.text_utf8(None) {
+                                let next_doc = Html::parse_document(&next_raw_html);
+
+                                // Extract domain from next page URL for custom extractor lookup
+                                let next_domain = Url::parse(&next_fetch_result.final_url)
+                                    .ok()
+                                    .and_then(|u| u.host_str().map(|h| h.to_lowercase()))
+                                    .unwrap_or_default();
+
+                                let next_custom_extractor = self.registry.get(&next_domain);
+
+                                // Extract content from next page using same pipeline
+                                let mut next_content_html = next_custom_extractor
+                                    .and_then(|ce| ce.content.as_ref())
+                                    .and_then(|ce| extract_content_first_html(&next_doc, ce))
+                                    .or_else(|| score_generic_content(&next_doc))
+                                    .unwrap_or_else(|| extract_body_inner_html(&next_doc));
+
+                                // JSON-LD fallback for next page
+                                let mut next_plain = html_to_text(&next_content_html);
+                                if next_plain.trim().len() < 500 {
+                                    if let Some(ld_body) =
+                                        extract_article_body_from_ld_json(&next_doc)
+                                    {
+                                        next_content_html = ld_body;
+                                        next_plain = html_to_text(&next_content_html);
+                                    }
+                                }
+
+                                let next_sanitized_html = sanitize_html(&next_content_html);
+
+                                // Append content based on content type
+                                match self.opts.content_type {
+                                    ContentType::Html => {
+                                        final_sanitized_html = format!(
+                                            "{}\n\n{}",
+                                            final_sanitized_html, next_sanitized_html
+                                        );
+                                        final_content = final_sanitized_html.clone();
+                                    }
+                                    ContentType::Markdown => {
+                                        let next_md = html_to_markdown(&next_sanitized_html);
+                                        final_content = format!("{}\n\n{}", final_content, next_md);
+                                        final_sanitized_html = format!(
+                                            "{}\n\n{}",
+                                            final_sanitized_html, next_sanitized_html
+                                        );
+                                    }
+                                    ContentType::Text => {
+                                        let next_text = html_to_text(&next_sanitized_html);
+                                        final_content =
+                                            format!("{}\n\n{}", final_content, next_text);
+                                        final_sanitized_html = format!(
+                                            "{}\n\n{}",
+                                            final_sanitized_html, next_sanitized_html
+                                        );
+                                    }
+                                }
+                                // capture next-next if present
+                                next_next_page_url = extract_next_page_url(
+                                    &next_doc,
+                                    next_custom_extractor.and_then(|ce| ce.next_page_url.as_ref()),
+                                );
+
+                                did_follow = true;
+                            }
+                        }
+                    }
+                }
+                // Clear next_page_url since we consumed it (only if we actually tried to follow)
+                if did_follow {
+                    next_page_url = next_next_page_url;
+                }
+            }
+        }
+
+        // Calculate word count from plain text of final content
+        let wc = if did_follow {
+            let final_text = html_to_text(&final_sanitized_html);
+            word_count(&final_text)
+        } else {
+            word_count(&plain_text)
         };
 
         // Determine description: if custom excerpt is set and dek is not, use custom_excerpt for description
@@ -579,7 +881,7 @@ impl Client {
         Ok(ParseResult {
             url: fetch_result.final_url,
             domain,
-            content,
+            content: final_content,
             title,
             excerpt,
             word_count: wc,
@@ -647,11 +949,20 @@ impl Client {
             .unwrap_or_default();
 
         // Extract content: prefer custom extractor if available, then best generic, then body
-        let content_html = custom_extractor
+        let mut content_html = custom_extractor
             .and_then(|ce| ce.content.as_ref())
             .and_then(|ce| extract_content_first_html(&doc, ce))
-            .or_else(|| choose_best_generic_content(&doc))
+            .or_else(|| score_generic_content(&doc))
             .unwrap_or_else(|| extract_body_inner_html(&doc));
+
+        // Fallback: if content is too short, try JSON-LD articleBody
+        let mut content_plain = html_to_text(&content_html);
+        if content_plain.trim().len() < 500 {
+            if let Some(ld_body) = extract_article_body_from_ld_json(&doc) {
+                content_html = ld_body;
+                content_plain = html_to_text(&content_html);
+            }
+        }
 
         // Sanitize the extracted HTML before conversion
         let sanitized_html = sanitize_html(&content_html);
@@ -1448,6 +1759,57 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn parse_next_page_dot_next_pattern() {
+        let html = r#"<!DOCTYPE html>
+<html>
+<body>
+<p>Content</p>
+<div class="next"><a href="/page2">Next</a></div>
+</body>
+</html>"#;
+
+        let client = Client::builder().content_type(ContentType::Html).build();
+
+        let result = client
+            .parse_html(html, "https://nocustom.test/page")
+            .await
+            .expect("parse_html should succeed");
+
+        assert_eq!(
+            result.next_page_url,
+            Some("/page2".to_string()),
+            "expected .next a pattern to be detected"
+        );
+    }
+
+    #[tokio::test]
+    async fn parse_next_page_pagination_pattern() {
+        let html = r#"<!DOCTYPE html>
+<html>
+<body>
+<p>Content</p>
+<div class="pagination">
+    <a href="/page1">Prev</a>
+    <a rel="next" href="/page2">Next</a>
+</div>
+</body>
+</html>"#;
+
+        let client = Client::builder().content_type(ContentType::Html).build();
+
+        let result = client
+            .parse_html(html, "https://nocustom.test/page")
+            .await
+            .expect("parse_html should succeed");
+
+        assert_eq!(
+            result.next_page_url,
+            Some("/page2".to_string()),
+            "expected .pagination a[rel=next] pattern to be detected"
+        );
+    }
+
+    #[tokio::test]
     async fn word_count_uses_text() {
         // Word count should be based on plain text from raw HTML, not the converted content
         let html = r#"<!DOCTYPE html>
@@ -1640,5 +2002,295 @@ mod tests {
         // both will be blocked. The test verifies SSRF protection works.
         let err = result.expect_err("should fail due to SSRF protection");
         assert!(err.is_ssrf(), "expected SSRF error, got: {:?}", err);
+    }
+
+    #[tokio::test]
+    async fn generic_prefers_dense_text_over_links() {
+        // main has long text with few links; article has similar length but 60% text inside links
+        // The scorer should prefer main due to lower link density
+        let html = r#"<!DOCTYPE html>
+<html>
+<head><title>Test</title></head>
+<body>
+<main>
+<p>This is a substantial paragraph of real content that has meaningful text without excessive links. It contains enough characters to exceed the minimum threshold and should be considered high quality content for extraction purposes.</p>
+</main>
+<article>
+<p><a href="/1">Link one with text</a> <a href="/2">Link two with more</a> <a href="/3">Link three here</a> <a href="/4">Another link text</a> <a href="/5">Yet more links</a> <a href="/6">Even more link</a> some small non-link text here.</p>
+</article>
+</body>
+</html>"#;
+
+        let client = Client::builder().content_type(ContentType::Html).build();
+
+        let result = client
+            .parse_html(html, "https://nocustom.test/page")
+            .await
+            .expect("parse_html should succeed");
+
+        // main should win because article has high link density (~60%)
+        assert!(
+            result
+                .content
+                .contains("substantial paragraph of real content"),
+            "expected main content with dense text, got: {}",
+            result.content
+        );
+        assert!(
+            !result.content.contains("Link one"),
+            "should not contain link-heavy article content, got: {}",
+            result.content
+        );
+    }
+
+    #[tokio::test]
+    async fn generic_requires_min_length() {
+        // All candidates have text shorter than 80 chars, should fall back to body
+        let html = r#"<!DOCTYPE html>
+<html>
+<head><title>Test</title></head>
+<body>
+<main>Short main text</main>
+<article>Brief article</article>
+<section>Tiny section</section>
+<p>Body fallback content that is long enough to verify we got the right element selected from the document structure.</p>
+</body>
+</html>"#;
+
+        let client = Client::builder().content_type(ContentType::Html).build();
+
+        let result = client
+            .parse_html(html, "https://nocustom.test/page")
+            .await
+            .expect("parse_html should succeed");
+
+        // Should fall back to body since no candidate meets minimum length
+        assert!(
+            result.content.contains("Body fallback content"),
+            "expected body fallback content, got: {}",
+            result.content
+        );
+    }
+
+    #[tokio::test]
+    async fn generic_penalizes_aside() {
+        // article has text but many aside descendants; main has similar text but no asides
+        // Each aside/nav/form descendant adds 10 point penalty
+        // With 8 asides = 80 penalty, article's score drops significantly
+        let html = r#"<!DOCTYPE html>
+<html>
+<head><title>Test</title></head>
+<body>
+<article>
+<p>Article content here.</p>
+<aside>Ad</aside>
+<aside>Ad</aside>
+<aside>Ad</aside>
+<aside>Ad</aside>
+<aside>Ad</aside>
+<aside>Ad</aside>
+<aside>Ad</aside>
+<aside>Ad</aside>
+</article>
+<main>
+<p>The main element has clean text content without sidebar distractions and noise from advertisements.</p>
+</main>
+</body>
+</html>"#;
+
+        let client = Client::builder().content_type(ContentType::Html).build();
+
+        let result = client
+            .parse_html(html, "https://nocustom.test/page")
+            .await
+            .expect("parse_html should succeed");
+
+        // main should win because article has 8 asides = 80 point penalty
+        // article text ~47 chars (short "Ad" text in asides) - 80 penalty = negative score
+        // main text ~97 chars, no penalty
+        assert!(
+            result.content.contains("main element has clean text"),
+            "expected main content without asides, got: {}",
+            result.content
+        );
+    }
+
+    #[tokio::test]
+    async fn multipage_appends_content() {
+        let server = MockServer::start();
+
+        // First page with link rel=next pointing to second page
+        let page2_url = server.url("/page2");
+        let mock1 = server.mock(|when, then| {
+            when.method(GET).path("/page1");
+            then.status(200)
+                .header("content-type", "text/html; charset=utf-8")
+                .body(format!(
+                    r#"<!DOCTYPE html>
+<html>
+<head>
+    <title>Page One</title>
+    <link rel="next" href="{}">
+</head>
+<body>
+<article><p>Content from page one with enough text to pass the minimum threshold for content extraction.</p></article>
+</body>
+</html>"#,
+                    page2_url
+                ));
+        });
+
+        // Second page
+        let mock2 = server.mock(|when, then| {
+            when.method(GET).path("/page2");
+            then.status(200)
+                .header("content-type", "text/html; charset=utf-8")
+                .body(
+                    r#"<!DOCTYPE html>
+<html>
+<head><title>Page Two</title></head>
+<body>
+<article><p>Content from page two with additional text that should be appended to the first page content.</p></article>
+</body>
+</html>"#,
+                );
+        });
+
+        let client = Client::builder()
+            .allow_private_networks(true)
+            .content_type(ContentType::Text)
+            .follow_next(true)
+            .build();
+
+        let result = client.parse(&server.url("/page1")).await;
+        mock1.assert();
+        mock2.assert();
+
+        let result = result.expect("parse should succeed");
+
+        // Content should contain text from both pages
+        assert!(
+            result.content.contains("Content from page one"),
+            "expected content from page one, got: {}",
+            result.content
+        );
+        assert!(
+            result.content.contains("Content from page two"),
+            "expected content from page two, got: {}",
+            result.content
+        );
+
+        // next_page_url should be None since it was consumed
+        assert!(
+            result.next_page_url.is_none(),
+            "expected next_page_url to be None after follow, got: {:?}",
+            result.next_page_url
+        );
+    }
+
+    #[tokio::test]
+    async fn multipage_respects_flag() {
+        let server = MockServer::start();
+
+        // First page with link rel=next pointing to second page
+        let page2_url = server.url("/page2");
+        let mock1 = server.mock(|when, then| {
+            when.method(GET).path("/page1");
+            then.status(200)
+                .header("content-type", "text/html; charset=utf-8")
+                .body(format!(
+                    r#"<!DOCTYPE html>
+<html>
+<head>
+    <title>Page One</title>
+    <link rel="next" href="{}">
+</head>
+<body>
+<article><p>Content from page one with enough text to pass the minimum threshold for content extraction.</p></article>
+</body>
+</html>"#,
+                    page2_url
+                ));
+        });
+
+        // Second page should NOT be fetched when follow_next is false
+        let mock2 = server.mock(|when, then| {
+            when.method(GET).path("/page2");
+            then.status(200)
+                .header("content-type", "text/html; charset=utf-8")
+                .body(
+                    r#"<!DOCTYPE html>
+<html>
+<head><title>Page Two</title></head>
+<body>
+<article><p>Content from page two</p></article>
+</body>
+</html>"#,
+                );
+        });
+
+        // Default: follow_next is false
+        let client = Client::builder()
+            .allow_private_networks(true)
+            .content_type(ContentType::Text)
+            .build();
+
+        let result = client.parse(&server.url("/page1")).await;
+        mock1.assert();
+
+        // Page 2 should NOT have been fetched
+        assert_eq!(
+            mock2.calls(),
+            0,
+            "page2 should not be fetched when follow_next is false"
+        );
+
+        let result = result.expect("parse should succeed");
+
+        // Content should only contain text from first page
+        assert!(
+            result.content.contains("Content from page one"),
+            "expected content from page one, got: {}",
+            result.content
+        );
+        assert!(
+            !result.content.contains("Content from page two"),
+            "should not contain content from page two, got: {}",
+            result.content
+        );
+
+        // next_page_url should still be set since we didn't follow
+        assert!(
+            result.next_page_url.is_some(),
+            "expected next_page_url to be set when follow_next is false"
+        );
+    }
+
+    #[tokio::test]
+    async fn dateparser_loose_formats() {
+        // Test that loose date formats like "5 Jan 2024" are parsed
+        let html = r#"<!DOCTYPE html>
+<html>
+<head>
+    <meta name="date" content="5 Jan 2024">
+</head>
+<body><p>Content</p></body>
+</html>"#;
+
+        let client = Client::builder().content_type(ContentType::Html).build();
+
+        let result = client
+            .parse_html(html, "https://nocustom.test/page")
+            .await
+            .expect("parse_html should succeed");
+
+        assert!(
+            result.date_published.is_some(),
+            "expected date_published to be set for loose format '5 Jan 2024'"
+        );
+        let dt = result.date_published.unwrap();
+        assert_eq!(dt.year(), 2024, "expected year 2024, got {}", dt.year());
+        assert_eq!(dt.month(), 1, "expected month 1, got {}", dt.month());
+        assert_eq!(dt.day(), 5, "expected day 5, got {}", dt.day());
     }
 }

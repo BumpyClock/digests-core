@@ -49,7 +49,7 @@ impl FetchResult {
 }
 
 /// Check if an IP address is in a private/reserved range.
-fn is_private_ip(addr: &IpAddr) -> bool {
+pub(crate) fn is_private_ip(addr: &IpAddr) -> bool {
     match addr {
         IpAddr::V4(ip) => {
             // RFC1918 private ranges
@@ -191,7 +191,9 @@ pub async fn fetch(
         ParseError::fetch(url, "Fetch", Some(anyhow::anyhow!("request failed: {}", e)))
     })?;
 
-    // SSRF check after redirect: verify the final URL doesn't resolve to a private IP
+    // SSRF check after redirect: verify the final URL doesn't resolve to a private IP.
+    // This re-resolution guards against DNS rebinding attacks where the DNS server
+    // returns a different (private) IP between the initial check and now.
     if !opts.allow_private_networks {
         let final_url_ref = response.url();
         if let Some(host) = final_url_ref.host_str() {
@@ -207,7 +209,9 @@ pub async fn fetch(
                     ));
                 }
             } else {
-                // Host is a hostname, resolve it and check all addresses
+                // Host is a hostname, resolve it and check all addresses.
+                // Re-resolving here catches DNS rebinding where the server returned
+                // a public IP initially but now returns a private IP.
                 let port = final_url_ref
                     .port()
                     .unwrap_or(if final_url_ref.scheme() == "https" {
@@ -220,7 +224,7 @@ pub async fn fetch(
                         url,
                         "Fetch",
                         Some(anyhow::anyhow!(
-                            "DNS lookup failed for redirect target: {}",
+                            "DNS lookup failed for final URL (rebinding check): {}",
                             e
                         )),
                     )
@@ -232,7 +236,7 @@ pub async fn fetch(
                             url,
                             "Fetch",
                             Some(anyhow::anyhow!(
-                                "redirect to private IP address is not allowed"
+                                "DNS rebinding detected: final URL resolves to private IP"
                             )),
                         ));
                     }

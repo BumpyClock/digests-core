@@ -25,7 +25,7 @@ const DEFAULT_CLEAN_SELECTORS: &[&str] = &[
 ];
 
 /// Substrings in class attributes that indicate ad-related elements.
-const AD_CLASS_MARKERS: &[&str] = &["ad", "ads", "advert"];
+const AD_CLASS_MARKERS: &[&str] = &["ad", "ads", "advert", "sidebar", "related", "sponsored"];
 
 /// Extracts HTML content from a document based on a `ContentExtractor` configuration.
 ///
@@ -257,7 +257,7 @@ fn is_empty_paragraph(node: &ego_tree::NodeRef<scraper::Node>) -> bool {
 /// Extracts inner HTML from an element, optionally applying default cleaning,
 /// filtering out nodes matching clean selectors, and applying transforms.
 ///
-/// Transform application order: transforms -> default_cleaner -> clean selectors
+/// Transform application order: transforms -> default_cleaner -> clean selectors -> post_cleaners
 fn extract_inner_html_filtered(
     element: &scraper::ElementRef,
     clean_selectors: &[Selector],
@@ -293,7 +293,10 @@ fn extract_inner_html_filtered(
     }
 
     // Serialize while filtering (transforms already applied)
-    serialize_filtered(&fragment, &skip_ids, &std::collections::HashMap::new())
+    let filtered_html = serialize_filtered(&fragment, &skip_ids, &std::collections::HashMap::new());
+
+    // Apply post-cleaners: heading fix and empty link rewriting
+    apply_post_cleaners(&filtered_html)
 }
 
 /// Applies transforms to an HTML fragment based on CSS selector mappings.
@@ -571,6 +574,194 @@ fn is_void_element(tag: &str) -> bool {
             | "track"
             | "wbr"
     )
+}
+
+/// Fixes heading structure by demoting extra h1 elements to h2.
+///
+/// If a fragment contains more than one h1, the first h1 stays as h1 and all
+/// subsequent h1 elements are demoted to h2.
+pub fn fix_headings(html: &str) -> String {
+    let fragment = Html::parse_fragment(html);
+    let h1_selector = match Selector::parse("h1") {
+        Ok(s) => s,
+        Err(_) => return html.to_string(),
+    };
+
+    let h1_elements: Vec<_> = fragment.select(&h1_selector).collect();
+    if h1_elements.len() <= 1 {
+        return html.to_string();
+    }
+
+    // Collect node IDs of h1 elements to demote (all except the first)
+    let mut demote_ids: std::collections::HashSet<ego_tree::NodeId> =
+        std::collections::HashSet::new();
+    for h1 in h1_elements.iter().skip(1) {
+        demote_ids.insert(h1.id());
+    }
+
+    // Serialize with h1 -> h2 renaming for demoted elements
+    let mut output = String::new();
+    for child in fragment.root_element().children() {
+        serialize_node_demote_headings(child, &demote_ids, &mut output);
+    }
+    output
+}
+
+/// Recursively serializes a node, demoting specified h1 elements to h2.
+fn serialize_node_demote_headings(
+    node: ego_tree::NodeRef<scraper::Node>,
+    demote_ids: &std::collections::HashSet<ego_tree::NodeId>,
+    output: &mut String,
+) {
+    match node.value() {
+        scraper::Node::Text(text) => {
+            output.push_str(&**text);
+        }
+        scraper::Node::Element(el) => {
+            let tag_name = el.name();
+            let node_id = node.id();
+
+            // Demote h1 to h2 if in demote set
+            let effective_tag =
+                if demote_ids.contains(&node_id) && tag_name.eq_ignore_ascii_case("h1") {
+                    "h2"
+                } else {
+                    tag_name
+                };
+
+            output.push('<');
+            output.push_str(effective_tag);
+
+            for (name, value) in el.attrs() {
+                output.push(' ');
+                output.push_str(name);
+                output.push_str("=\"");
+                output.push_str(&escape_attr(value));
+                output.push('"');
+            }
+
+            if is_void_element(effective_tag) {
+                output.push_str(" />");
+            } else {
+                output.push('>');
+                for child in node.children() {
+                    serialize_node_demote_headings(child, demote_ids, output);
+                }
+                output.push_str("</");
+                output.push_str(effective_tag);
+                output.push('>');
+            }
+        }
+        scraper::Node::Comment(comment) => {
+            output.push_str("<!--");
+            output.push_str(&**comment);
+            output.push_str("-->");
+        }
+        _ => {}
+    }
+}
+
+/// Rewrites empty links by unwrapping anchor elements with empty or "#" href.
+///
+/// Anchor elements with `href=""` or `href="#"` that contain text content are
+/// replaced with their inner content (the anchor tag is removed but children remain).
+pub fn rewrite_empty_links(html: &str) -> String {
+    let fragment = Html::parse_fragment(html);
+    let a_selector = match Selector::parse("a") {
+        Ok(s) => s,
+        Err(_) => return html.to_string(),
+    };
+
+    // Find anchors with empty or "#" href that have text content
+    let mut unwrap_ids: std::collections::HashSet<ego_tree::NodeId> =
+        std::collections::HashSet::new();
+
+    for anchor in fragment.select(&a_selector) {
+        let href = anchor.value().attr("href").unwrap_or("");
+        let href_trimmed = href.trim();
+
+        // Check if href is empty or just "#"
+        if href_trimmed.is_empty() || href_trimmed == "#" {
+            // Check if anchor has text content
+            let has_text = anchor.text().any(|t| !t.trim().is_empty());
+            if has_text {
+                unwrap_ids.insert(anchor.id());
+            }
+        }
+    }
+
+    if unwrap_ids.is_empty() {
+        return html.to_string();
+    }
+
+    // Serialize, unwrapping the marked anchors
+    let mut output = String::new();
+    for child in fragment.root_element().children() {
+        serialize_node_unwrap_links(child, &unwrap_ids, &mut output);
+    }
+    output
+}
+
+/// Recursively serializes a node, unwrapping specified anchor elements.
+fn serialize_node_unwrap_links(
+    node: ego_tree::NodeRef<scraper::Node>,
+    unwrap_ids: &std::collections::HashSet<ego_tree::NodeId>,
+    output: &mut String,
+) {
+    match node.value() {
+        scraper::Node::Text(text) => {
+            output.push_str(&**text);
+        }
+        scraper::Node::Element(el) => {
+            let node_id = node.id();
+
+            // Unwrap if this is a marked anchor
+            if unwrap_ids.contains(&node_id) {
+                for child in node.children() {
+                    serialize_node_unwrap_links(child, unwrap_ids, output);
+                }
+                return;
+            }
+
+            let tag_name = el.name();
+            output.push('<');
+            output.push_str(tag_name);
+
+            for (name, value) in el.attrs() {
+                output.push(' ');
+                output.push_str(name);
+                output.push_str("=\"");
+                output.push_str(&escape_attr(value));
+                output.push('"');
+            }
+
+            if is_void_element(tag_name) {
+                output.push_str(" />");
+            } else {
+                output.push('>');
+                for child in node.children() {
+                    serialize_node_unwrap_links(child, unwrap_ids, output);
+                }
+                output.push_str("</");
+                output.push_str(tag_name);
+                output.push('>');
+            }
+        }
+        scraper::Node::Comment(comment) => {
+            output.push_str("<!--");
+            output.push_str(&**comment);
+            output.push_str("-->");
+        }
+        _ => {}
+    }
+}
+
+/// Applies post-extraction cleaners: heading fix and empty link rewriting.
+///
+/// These cleaners are applied after all other transforms and cleaning steps.
+pub fn apply_post_cleaners(html: &str) -> String {
+    let with_fixed_headings = fix_headings(html);
+    rewrite_empty_links(&with_fixed_headings)
 }
 
 #[cfg(test)]
@@ -1118,6 +1309,197 @@ mod tests {
         assert!(
             !output.contains("src=\"old.jpg\""),
             "output should not contain src=\"old.jpg\": {}",
+            output
+        );
+    }
+
+    #[test]
+    fn transform_img_data_src_to_src() {
+        // Test that img with data-src gets src populated via MoveAttr transform
+        let html =
+            r#"<html><body><article><img data-src="lazy.jpg" alt="Lazy"></article></body></html>"#;
+        let doc = Html::parse_document(html);
+
+        let mut transforms = HashMap::new();
+        transforms.insert(
+            "img".to_string(),
+            TransformSpec::MoveAttr {
+                from: "data-src".to_string(),
+                to: "src".to_string(),
+            },
+        );
+
+        let ce = ContentExtractor {
+            field: FieldExtractor {
+                selectors: vec![SelectorSpec::Css("article".to_string())],
+                allow_multiple: false,
+                default_cleaner: false,
+                ..Default::default()
+            },
+            clean: vec![],
+            transforms,
+        };
+
+        let result = extract_content_html(&doc, &ce);
+        assert!(result.is_some());
+        let values = result.unwrap();
+        assert_eq!(values.len(), 1);
+        let output = &values[0];
+        // src should be set from data-src
+        assert!(
+            output.contains("src=\"lazy.jpg\""),
+            "output should contain src=\"lazy.jpg\": {}",
+            output
+        );
+        assert!(
+            output.contains("alt=\"Lazy\""),
+            "output should preserve other attrs: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn heading_demote_extra_h1() {
+        // Test that multiple h1 elements are demoted: first stays h1, rest become h2
+        let html = r#"<h1>First Title</h1><p>Content</p><h1>Second Title</h1><p>More</p><h1>Third Title</h1>"#;
+        let output = fix_headings(html);
+
+        // First h1 should stay h1
+        assert!(
+            output.contains("<h1>First Title</h1>"),
+            "first h1 should remain h1: {}",
+            output
+        );
+        // Second and third h1 should become h2
+        assert!(
+            output.contains("<h2>Second Title</h2>"),
+            "second h1 should become h2: {}",
+            output
+        );
+        assert!(
+            output.contains("<h2>Third Title</h2>"),
+            "third h1 should become h2: {}",
+            output
+        );
+        // Should not have more than one h1
+        let h1_count = output.matches("<h1>").count();
+        assert_eq!(h1_count, 1, "should have exactly one h1, got: {}", output);
+    }
+
+    #[test]
+    fn heading_single_h1_unchanged() {
+        // Test that a single h1 is not modified
+        let html = r#"<h1>Only Title</h1><p>Content</p>"#;
+        let output = fix_headings(html);
+        assert!(
+            output.contains("<h1>Only Title</h1>"),
+            "single h1 should remain: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn unwrap_empty_links() {
+        // Test that anchors with empty or "#" href are unwrapped
+        let html = r##"<p><a href="#">Click me</a> and <a href="">Empty link</a></p>"##;
+        let output = rewrite_empty_links(html);
+
+        // Anchors should be unwrapped, text should remain
+        assert!(
+            output.contains("Click me"),
+            "text content should remain: {}",
+            output
+        );
+        assert!(
+            output.contains("Empty link"),
+            "text content should remain: {}",
+            output
+        );
+        // Anchor tags should be removed
+        assert!(
+            !output.contains("<a "),
+            "anchor tags should be removed: {}",
+            output
+        );
+        assert!(
+            !output.contains("</a>"),
+            "closing anchor tags should be removed: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn unwrap_empty_links_preserves_real_links() {
+        // Test that anchors with real hrefs are preserved
+        let html =
+            r##"<p><a href="https://example.com">Real link</a> and <a href="#">Empty</a></p>"##;
+        let output = rewrite_empty_links(html);
+
+        // Real link should be preserved
+        assert!(
+            output.contains("<a href=\"https://example.com\">Real link</a>"),
+            "real links should be preserved: {}",
+            output
+        );
+        // Empty href link should be unwrapped
+        assert!(
+            output.contains("Empty"),
+            "empty link text should remain: {}",
+            output
+        );
+        // Should have exactly one anchor tag (the real one)
+        let a_count = output.matches("<a ").count();
+        assert_eq!(a_count, 1, "should have exactly one anchor tag: {}", output);
+    }
+
+    #[test]
+    fn post_cleaners_integration() {
+        // Test that post-cleaners are applied in content extraction
+        let html = r##"<html><body><article>
+            <h1>Main Title</h1>
+            <h1>Should Be H2</h1>
+            <p><a href="#">Click</a></p>
+        </article></body></html>"##;
+        let doc = Html::parse_document(html);
+
+        let ce = ContentExtractor {
+            field: FieldExtractor {
+                selectors: vec![SelectorSpec::Css("article".to_string())],
+                allow_multiple: false,
+                default_cleaner: false,
+                ..Default::default()
+            },
+            clean: vec![],
+            transforms: HashMap::new(),
+        };
+
+        let result = extract_content_html(&doc, &ce);
+        assert!(result.is_some());
+        let values = result.unwrap();
+        assert_eq!(values.len(), 1);
+        let output = &values[0];
+
+        // First h1 should stay h1
+        assert!(
+            output.contains("<h1>Main Title</h1>"),
+            "first h1 should remain: {}",
+            output
+        );
+        // Second h1 should become h2
+        assert!(
+            output.contains("<h2>Should Be H2</h2>"),
+            "second h1 should become h2: {}",
+            output
+        );
+        // Empty href anchor should be unwrapped
+        assert!(
+            output.contains("Click"),
+            "link text should remain: {}",
+            output
+        );
+        assert!(
+            !output.contains(r##"<a href="#">"##),
+            "empty href anchor should be unwrapped: {}",
             output
         );
     }
