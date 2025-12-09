@@ -153,20 +153,9 @@ pub fn apply_domain_function_transforms(domain: &str, html: &str) -> String {
             ));
         }
         // Gawker/Kinja network lazy YouTube
-        "deadspin.com"
-        | "jezebel.com"
-        | "lifehacker.com"
-        | "kotaku.com"
-        | "gizmodo.com"
-        | "jalopnik.com"
-        | "kinja.com"
-        | "avclub.com"
-        | "clickhole.com"
-        | "splinternews.com"
-        | "theonion.com"
-        | "theroot.com"
-        | "thetakeout.com"
-        | "theinventory.com" => {
+        "deadspin.com" | "jezebel.com" | "lifehacker.com" | "kotaku.com" | "gizmodo.com"
+        | "jalopnik.com" | "kinja.com" | "avclub.com" | "clickhole.com" | "splinternews.com"
+        | "theonion.com" | "theroot.com" | "thetakeout.com" | "theinventory.com" => {
             rules.push((
                 "iframe".into(),
                 gawker_youtube_transform as fn(&Selection) -> Option<String>,
@@ -265,7 +254,10 @@ pub fn apply_domain_function_transforms(domain: &str, html: &str) -> String {
         }
         "uproxx.com" => {
             rules.push(("div.image".into(), wrap_tag_fn("figure")));
-            rules.push(("div.image .wp-media-credit".into(), wrap_tag_fn("figcaption")));
+            rules.push((
+                "div.image .wp-media-credit".into(),
+                wrap_tag_fn("figcaption"),
+            ));
         }
         "www.fool.com" => {
             rules.push((".caption".into(), wrap_tag_fn("figcaption")));
@@ -325,21 +317,22 @@ fn serialize_doc_with_replacements(
 // --- domain transform helpers ---
 
 fn reddit_role_img_transform(el: &Selection) -> Option<String> {
-    let src = el
-        .attr("data-url")
-        .map(|s| s.to_string())
-        .or_else(|| {
-            el.attr("style").and_then(|style| {
-                // extract url(...) from style
-                style
-                    .split("url(")
-                    .nth(1)
-                    .and_then(|rest| rest.split(')').next())
-                    .map(|s| s.trim_matches(&['\'', '"'][..]).to_string())
-            })
-        })?;
+    let src = el.attr("data-url").map(|s| s.to_string()).or_else(|| {
+        el.attr("style").and_then(|style| {
+            // extract url(...) from style
+            style
+                .split("url(")
+                .nth(1)
+                .and_then(|rest| rest.split(')').next())
+                .map(|s| s.trim_matches(&['\'', '"'][..]).to_string())
+        })
+    })?;
     let alt = el.attr("aria-label").unwrap_or_default();
-    Some(format!("<img src=\"{}\" alt=\"{}\" />", escape_attr(&src), escape_attr(&alt)))
+    Some(format!(
+        "<img src=\"{}\" alt=\"{}\" />",
+        escape_attr(&src),
+        escape_attr(&alt)
+    ))
 }
 
 fn youtube_iframe_transform(el: &Selection) -> Option<String> {
@@ -376,7 +369,10 @@ fn cnn_video_thumb(el: &Selection) -> Option<String> {
     if img_sel.length() > 0 {
         let src = img_sel.attr("src").unwrap_or_default();
         if !src.is_empty() {
-            return Some(format!(r#"<figure class="media__video--thumbnail"><img src="{}"/></figure>"#, escape_attr(&src)));
+            return Some(format!(
+                r#"<figure class="media__video--thumbnail"><img src="{}"/></figure>"#,
+                escape_attr(&src)
+            ));
         }
     }
     None
@@ -386,14 +382,22 @@ fn embed_twitter_blockquote(el: &Selection) -> Option<String> {
     // Preserve inner HTML; wrap in blockquote.twitter-tweet if not already
     let inner = el.inner_html();
     if el.is("blockquote") {
-        return Some(format!(r#"<blockquote class="twitter-tweet">{}</blockquote>"#, inner));
+        return Some(format!(
+            r#"<blockquote class="twitter-tweet">{}</blockquote>"#,
+            inner
+        ));
     }
-    Some(format!(r#"<blockquote class="twitter-tweet">{}</blockquote>"#, inner))
+    Some(format!(
+        r#"<blockquote class="twitter-tweet">{}</blockquote>"#,
+        inner
+    ))
 }
 
 fn img_data_src_to_src(el: &Selection) -> Option<String> {
     // Copy data-src/srcset onto img
-    let mut attrs: Vec<(String, String)> = el.nodes().first()
+    let mut attrs: Vec<(String, String)> = el
+        .nodes()
+        .first()
         .map(|node| {
             node.attrs()
                 .iter()
@@ -405,7 +409,9 @@ fn img_data_src_to_src(el: &Selection) -> Option<String> {
     fix_lazy_img_attrs(&mut attrs);
 
     // Get tag name
-    let tag_name = el.nodes().first()
+    let tag_name = el
+        .nodes()
+        .first()
         .and_then(|n| n.node_name())
         .unwrap_or_default();
 
@@ -503,15 +509,22 @@ fn natgeo_parsys_transform(el: &Selection) -> Option<String> {
             let container = first_child.select(".media--medium__container");
             if container.length() > 0 {
                 let data_container = container.children().first();
-                let img1 = data_container.attr("data-platform-image1-path").unwrap_or_default();
-                let img2 = data_container.attr("data-platform-image2-path").unwrap_or_default();
+                let img1 = data_container
+                    .attr("data-platform-image1-path")
+                    .unwrap_or_default();
+                let img2 = data_container
+                    .attr("data-platform-image2-path")
+                    .unwrap_or_default();
                 if !img1.is_empty() && !img2.is_empty() {
                     let lead = format!(
                         r#"<div class="__image-lead__"><img src="{}"/><img src="{}"/></div>"#,
                         escape_attr(&img1),
                         escape_attr(&img2)
                     );
-                    return Some(wrap_with_same_tag(el, &format!("{}{}", lead, el.inner_html())));
+                    return Some(wrap_with_same_tag(
+                        el,
+                        &format!("{}{}", lead, el.inner_html()),
+                    ));
                 }
             }
         }
@@ -525,7 +538,10 @@ fn natgeo_parsys_transform(el: &Selection) -> Option<String> {
                 r#"<img class="__image-lead__" src="{}"/>"#,
                 escape_attr(&src)
             );
-            return Some(wrap_with_same_tag(el, &format!("{}{}", lead, el.inner_html())));
+            return Some(wrap_with_same_tag(
+                el,
+                &format!("{}{}", lead, el.inner_html()),
+            ));
         }
     }
 
@@ -533,7 +549,9 @@ fn natgeo_parsys_transform(el: &Selection) -> Option<String> {
 }
 
 fn wrap_with_same_tag(el: &Selection, inner: &str) -> String {
-    let name = el.nodes().first()
+    let name = el
+        .nodes()
+        .first()
         .and_then(|n| n.node_name())
         .unwrap_or_default();
 
@@ -565,7 +583,9 @@ fn unwrap_keep_children_fn(el: &Selection) -> Option<String> {
 }
 
 fn build_element_with_attr(el: &Selection, attr: &str, value: &str) -> String {
-    let name = el.nodes().first()
+    let name = el
+        .nodes()
+        .first()
         .and_then(|n| n.node_name())
         .unwrap_or_default();
 
@@ -642,7 +662,6 @@ fn fix_lazy_source_attrs(attrs: &mut Vec<(String, String)>) {
     }
 }
 
-
 /// Applies default content cleaning to an HTML fragment.
 ///
 /// Performs the following cleaning steps:
@@ -664,7 +683,10 @@ fn apply_default_clean(html: &str) -> String {
     for el in doc.select("*").iter() {
         if let Some(class_attr) = el.attr("class") {
             let class_lower = class_attr.to_lowercase();
-            if AD_CLASS_MARKERS.iter().any(|marker| class_lower.contains(marker)) {
+            if AD_CLASS_MARKERS
+                .iter()
+                .any(|marker| class_lower.contains(marker))
+            {
                 el.remove();
             }
         }
@@ -682,7 +704,13 @@ fn apply_default_clean(html: &str) -> String {
             } else {
                 // Check if it's whitespace-only text
                 let text = current_next.text();
-                if text.trim().is_empty() && current_next.nodes().first().map(|n| n.is_text()).unwrap_or(false) {
+                if text.trim().is_empty()
+                    && current_next
+                        .nodes()
+                        .first()
+                        .map(|n| n.is_text())
+                        .unwrap_or(false)
+                {
                     current_next = current_next.next_sibling();
                 } else {
                     break;
@@ -732,7 +760,6 @@ fn apply_filters_and_transforms_legacy(
     use_default_cleaner: bool,
     preserve_tags: bool,
 ) -> String {
-
     // Fast path: if no transforms, no cleaners, and default_cleaner is off, return as-is (post cleaners only)
     if !use_default_cleaner && clean_selectors.is_empty() && transforms.is_empty() {
         return apply_post_cleaners(&inner_html);
@@ -740,7 +767,8 @@ fn apply_filters_and_transforms_legacy(
 
     // If no transforms and no default cleaner, but there ARE clean selectors,
     // apply a lightweight removal of those selectors while keeping all other tags.
-    if preserve_tags && !use_default_cleaner && transforms.is_empty() && !clean_selectors.is_empty() {
+    if preserve_tags && !use_default_cleaner && transforms.is_empty() && !clean_selectors.is_empty()
+    {
         let mut frag = Html::parse_fragment(&inner_html);
         let mut to_remove: Vec<ego_tree::NodeId> = Vec::new();
         for selector in clean_selectors {
@@ -872,7 +900,7 @@ fn handle_noscript_special_case(doc: &Document, selector_str: &str) {
         // Filter to just element children (skip text nodes)
         let element_children: Vec<_> = children
             .iter()
-            .filter(|c| c.is("*"))  // is("*") matches any element
+            .filter(|c| c.is("*")) // is("*") matches any element
             .collect();
         if element_children.len() == 1 {
             let first_child = element_children[0];
@@ -981,8 +1009,8 @@ fn apply_filters_and_transforms_unified(
 fn apply_default_clean_to_doc(doc: &Document) {
     // Remove common noise elements
     for selector in &[
-        "script", "style", "noscript", "nav", "header", "footer",
-        "aside", "form", "iframe", "button", "input", "select", "textarea"
+        "script", "style", "noscript", "nav", "header", "footer", "aside", "form", "iframe",
+        "button", "input", "select", "textarea",
     ] {
         doc.select(selector).remove();
     }
@@ -993,7 +1021,10 @@ fn apply_default_clean_to_doc(doc: &Document) {
         let sel = Selection::from(node);
         if let Some(class) = sel.attr("class") {
             let class_lower = class.to_lowercase();
-            if AD_CLASS_MARKERS.iter().any(|marker| class_lower.contains(marker)) {
+            if AD_CLASS_MARKERS
+                .iter()
+                .any(|marker| class_lower.contains(marker))
+            {
                 sel.remove();
             }
         }
@@ -1236,11 +1267,12 @@ fn serialize_node(
             let tag_lower = tag_name.to_lowercase();
 
             // Apply tag transform
-            let mut effective_tag = if let Some(TransformSpec::Tag { value }) = transforms.get(tag_name) {
-                value.as_str()
-            } else {
-                tag_name
-            };
+            let mut effective_tag =
+                if let Some(TransformSpec::Tag { value }) = transforms.get(tag_name) {
+                    value.as_str()
+                } else {
+                    tag_name
+                };
 
             // Default noscript handling if no explicit transform: turn into div
             if tag_lower == "noscript" {
@@ -1248,8 +1280,10 @@ fn serialize_node(
             }
 
             // Collect attrs so we can apply lazy fixes
-            let mut attrs: Vec<(String, String)> =
-                el.attrs().map(|(k, v)| (k.to_string(), v.to_string())).collect();
+            let mut attrs: Vec<(String, String)> = el
+                .attrs()
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .collect();
 
             if tag_lower == "img" {
                 fix_lazy_img_attrs(&mut attrs);
@@ -1374,7 +1408,10 @@ fn fix_lazy_img_attrs(attrs: &mut Vec<(String, String)>) {
         match kl.as_str() {
             "src" if !v.is_empty() => src = Some(v.clone()),
             "srcset" if !v.is_empty() => srcset = Some(v.clone()),
-            "data-src" | "data-original" | "data-lazy" | "data-lazy-src" | "data-zoom" | "data-zoom-src" | "data-href" | "data-url" if !v.is_empty() => {
+            "data-src" | "data-original" | "data-lazy" | "data-lazy-src" | "data-zoom"
+            | "data-zoom-src" | "data-href" | "data-url"
+                if !v.is_empty() =>
+            {
                 if src.is_none() {
                     src = Some(v.clone())
                 }

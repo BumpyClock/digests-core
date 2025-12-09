@@ -3,9 +3,9 @@
 
 use std::collections::HashSet;
 
+use dom_query::{Document, Node, NodeId, Selection};
 use once_cell::sync::Lazy;
 use regex::Regex;
-use dom_query::{Document, Node, NodeId, Selection};
 
 use super::scoring::{get_weight, link_density, normalize_spaces};
 
@@ -25,9 +25,6 @@ const STRIP_OUTPUT_TAGS: &[&str] = &[
     "title", "script", "noscript", "link", "style", "hr", "embed", "iframe", "object",
 ];
 
-#[allow(dead_code)]
-const HEADER_TAGS: &[&str] = &["h2", "h3", "h4", "h5", "h6"];
-
 static SPACER_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"(?i)transparent|spacer|blank").unwrap());
 
 static CANDIDATES_BLACKLIST: Lazy<Regex> = Lazy::new(|| {
@@ -39,16 +36,23 @@ static CANDIDATES_WHITELIST: Lazy<Regex> = Lazy::new(|| {
 
 #[allow(dead_code)]
 const WHITELIST_ATTRS: &[&str] = &[
-    "src", "srcset", "sizes", "type", "href", "class", "id", "alt", "xlink:href", "width", "height",
+    "src",
+    "srcset",
+    "sizes",
+    "type",
+    "href",
+    "class",
+    "id",
+    "alt",
+    "xlink:href",
+    "width",
+    "height",
 ];
 static WHITELIST_ATTRS_RE: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"(?i)^(src|srcset|sizes|type|href|class|id|alt|xlink:href|width|height)$").unwrap()
 });
 
-#[allow(dead_code)]
-const REMOVE_EMPTY_TAGS: &[&str] = &["p"];
 const CLEAN_CONDITIONALLY_TAGS_LIST: &str = "ul,ol,table,div,button,form";
-const HEADER_TAG_LIST: &str = "h2,h3,h4,h5,h6";
 
 pub fn is_unlikely_candidate(sel: &Selection) -> bool {
     if sel.is("a") {
@@ -66,11 +70,7 @@ pub fn is_unlikely_candidate(sel: &Selection) -> bool {
     CANDIDATES_BLACKLIST.is_match(&combo)
 }
 
-pub fn should_remove_header(
-    sel: &Selection,
-    title: &str,
-    has_preceding_paragraph: bool,
-) -> bool {
+pub fn should_remove_header(sel: &Selection, title: &str, has_preceding_paragraph: bool) -> bool {
     if !has_preceding_paragraph {
         return true;
     }
@@ -104,7 +104,9 @@ pub fn process_h1_tags(html: &str) -> String {
         for node in h1s.nodes() {
             let sel = Selection::from(node.clone());
             let outer_html = sel.html().to_string();
-            let new_html = outer_html.replacen("<h1", "<h2", 1).replacen("</h1>", "</h2>", 1);
+            let new_html = outer_html
+                .replacen("<h1", "<h2", 1)
+                .replacen("</h1>", "</h2>", 1);
             sel.replace_with_html(new_html.as_str());
         }
     }
@@ -212,7 +214,11 @@ fn remove_unless_content(sel: &Selection, weight: i32) -> bool {
             return true;
         }
         if weight >= 25 && density > 0.5 {
-            let tag_name = sel.nodes().first().map(|n| n.node_name().unwrap_or_default().to_lowercase()).unwrap_or_default();
+            let tag_name = sel
+                .nodes()
+                .first()
+                .map(|n| n.node_name().unwrap_or_default().to_lowercase())
+                .unwrap_or_default();
             let is_list = tag_name == "ol" || tag_name == "ul";
             if is_list {
                 // Check previous sibling element
@@ -245,11 +251,7 @@ fn strip_unlikely(
     keep_selectors: &[String],
     keep_class_subtree: &HashSet<NodeId>,
 ) {
-    fn walk(
-        node: Node,
-        keep_selectors: &[String],
-        keep_class_subtree: &HashSet<NodeId>,
-    ) {
+    fn walk(node: Node, keep_selectors: &[String], keep_class_subtree: &HashSet<NodeId>) {
         let children: Vec<Node> = node.children();
         for child in children {
             walk(child, keep_selectors, keep_class_subtree);
@@ -260,7 +262,8 @@ fn strip_unlikely(
         }
 
         let sel = Selection::from(node);
-        if is_unlikely_candidate(&sel) && !should_keep(&sel, keep_selectors, Some(keep_class_subtree))
+        if is_unlikely_candidate(&sel)
+            && !should_keep(&sel, keep_selectors, Some(keep_class_subtree))
         {
             sel.remove();
         }
@@ -307,73 +310,74 @@ fn clean_conditionally(
     }
 }
 
-fn clean_headers(doc: &mut Document, title: &str) {
+/// Filters attributes on a single element, removing non-whitelisted attributes.
+fn filter_node_attributes(sel: &Selection) {
+    let attrs: Vec<String> = sel
+        .nodes()
+        .first()
+        .map(|n| {
+            n.attrs()
+                .iter()
+                .filter(|attr| !WHITELIST_ATTRS_RE.is_match(&attr.name.local))
+                .map(|attr| attr.name.local.to_string())
+                .collect()
+        })
+        .unwrap_or_default();
+
+    for attr in attrs {
+        sel.remove_attr(&attr);
+    }
+}
+
+/// Unified single-pass cleaner that consolidates header cleaning, image cleaning,
+/// empty paragraph removal, and attribute filtering into one DOM traversal.
+///
+/// This reduces complexity from O(4N) to O(N) by processing all elements once.
+fn clean_nodes_unified(doc: &mut Document, title: &str) {
     let mut seen_p = false;
 
-    // We need to iterate through all elements in document order
-    // Since dom_query doesn't provide a direct way to iterate in document order,
-    // we'll select all elements and check them
-    let all_elements: Vec<_> = doc.select("*").nodes().iter().cloned().collect();
+    // Single snapshot of all nodes in document order
+    let nodes: Vec<_> = doc.select("*").nodes().iter().cloned().collect();
 
-    for node in all_elements {
-        let sel = Selection::from(node);
-        let tag_name = sel.nodes().first()
-            .and_then(|n| n.node_name())
-            .unwrap_or_default()
-            .to_lowercase();
+    for node in nodes {
+        // Skip if node was removed (parent removed in earlier iteration)
+        let sel = Selection::from(node.clone());
+        if sel.length() == 0 {
+            continue;
+        }
 
+        let tag_name = node.node_name().unwrap_or_default().to_lowercase();
+
+        // Track paragraph state for header cleaning
         if tag_name == "p" {
             seen_p = true;
         }
 
-        if HEADER_TAG_LIST.split(',').any(|t| t == tag_name) {
-            if should_remove_header(&sel, title, seen_p) {
-                sel.remove();
+        // Tag-specific removal checks
+        match tag_name.as_str() {
+            "h2" | "h3" | "h4" | "h5" | "h6" => {
+                if should_remove_header(&sel, title, seen_p) {
+                    sel.remove();
+                    continue;
+                }
             }
+            "img" => {
+                if should_remove_image(&sel) {
+                    sel.remove();
+                    continue;
+                }
+            }
+            "p" => {
+                if is_empty_paragraph(&sel) {
+                    sel.remove();
+                    continue;
+                }
+            }
+            _ => {}
         }
-    }
-}
 
-fn clean_images(doc: &mut Document) {
-    let images: Vec<_> = doc.select("img").nodes().iter().cloned().collect();
-
-    for node in images {
-        let sel = Selection::from(node);
-        if should_remove_image(&sel) {
-            sel.remove();
-        }
-    }
-}
-
-fn clean_empty_paragraphs(doc: &mut Document) {
-    let paragraphs: Vec<_> = doc.select("p").nodes().iter().cloned().collect();
-
-    for node in paragraphs {
-        let sel = Selection::from(node);
-        if is_empty_paragraph(&sel) {
-            sel.remove();
-        }
-    }
-}
-
-fn filter_attributes(doc: &mut Document) {
-    let elements: Vec<_> = doc.select("*").nodes().iter().cloned().collect();
-
-    for node in elements {
-        let sel = Selection::from(node.clone());
-        let attrs: Vec<String> = sel.nodes().first()
-            .map(|n| {
-                n.attrs()
-                    .iter()
-                    .filter(|attr| !WHITELIST_ATTRS_RE.is_match(&attr.name.local))
-                    .map(|attr| attr.name.local.to_string())
-                    .collect()
-            })
-            .unwrap_or_default();
-
-        for attr in attrs {
-            sel.remove_attr(&attr);
-        }
+        // Attribute filtering for ALL surviving nodes
+        filter_node_attributes(&sel);
     }
 }
 
@@ -396,10 +400,7 @@ pub fn clean_article(html: &str, title: &str) -> String {
 
     strip_unlikely(&mut doc, &keep_selectors, &keep_class_subtree);
     clean_conditionally(&mut doc, &keep_selectors, &keep_class_subtree);
-    clean_headers(&mut doc, title);
-    clean_images(&mut doc);
-    clean_empty_paragraphs(&mut doc);
-    filter_attributes(&mut doc);
+    clean_nodes_unified(&mut doc, title);
 
     let cleaned = doc.html();
     let br_fixed = crate::dom::brs::brs_to_ps(&cleaned);
@@ -422,10 +423,7 @@ fn convert_divs_to_paragraphs(doc: &Document) -> String {
             }
         }
 
-        let tag_name = node
-            .node_name()
-            .unwrap_or_default()
-            .to_lowercase();
+        let tag_name = node.node_name().unwrap_or_default().to_lowercase();
         let mut tag_for_block = tag_name.as_str();
 
         if (tag_for_block == "div" || tag_for_block == "span") && !has_block_descendant {

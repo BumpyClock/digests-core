@@ -217,11 +217,7 @@ pub fn link_density(selection: &Selection) -> f64 {
         return 0.0;
     }
 
-    let link_text_len: usize = selection
-        .select("a")
-        .iter()
-        .map(|a| a.text().len())
-        .sum();
+    let link_text_len: usize = selection.select("a").iter().map(|a| a.text().len()).sum();
 
     link_text_len as f64 / total_len as f64
 }
@@ -374,7 +370,11 @@ pub fn score_content(doc: &Document, weight_nodes: bool) -> NodeScores {
         }
     }
 
-    fn get_or_init_score(selection: &Selection, scores: &mut NodeScores, weight_nodes: bool) -> i32 {
+    fn get_or_init_score(
+        selection: &Selection,
+        scores: &mut NodeScores,
+        weight_nodes: bool,
+    ) -> i32 {
         if let Some(node_id) = get_node_id(selection) {
             let existing = get_score_for(node_id, scores);
             if existing != 0 {
@@ -816,10 +816,7 @@ mod tests {
 
         let candidate = find_top_candidate(&doc, &scores, &text_metrics).expect("candidate");
         assert_eq!(get_tag_name(&candidate), "div");
-        assert_eq!(
-            normalize_spaces(&candidate.text()),
-            "Valid content"
-        );
+        assert_eq!(normalize_spaces(&candidate.text()), "Valid content");
     }
 
     #[test]

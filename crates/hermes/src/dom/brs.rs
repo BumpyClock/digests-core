@@ -212,7 +212,7 @@ mod tests {
         // 2. Text before and after are separated
         assert!(output.contains("First paragraph"));
         assert!(output.contains("Second paragraph"));
-        assert!(output.contains("<p"));  // Has paragraph tags
+        assert!(output.contains("<p")); // Has paragraph tags
     }
 
     #[test]
@@ -286,7 +286,8 @@ mod tests {
 
     #[test]
     fn test_rewrite_top_level_preserves_attributes() {
-        let input = r#"<html lang="en"><body class="article"><div id="content">Test</div></body></html>"#;
+        let input =
+            r#"<html lang="en"><body class="article"><div id="content">Test</div></body></html>"#;
         let output = rewrite_top_level(input);
 
         let doc = Document::from(output.as_str());

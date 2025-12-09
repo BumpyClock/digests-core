@@ -210,7 +210,10 @@ fn extract_author(doc: &Document, custom: Option<&FieldExtractor>) -> Option<Str
 }
 
 /// Extract date_published using custom extractor field if available, falling back to generic heuristics.
-fn extract_date_published(doc: &Document, custom: Option<&FieldExtractor>) -> Option<DateTime<Utc>> {
+fn extract_date_published(
+    doc: &Document,
+    custom: Option<&FieldExtractor>,
+) -> Option<DateTime<Utc>> {
     // Try custom extractor first
     if let Some(fe) = custom {
         if let Some(date_str) = extract_field_first_text(doc, fe) {
@@ -715,7 +718,8 @@ impl Client {
         }
 
         // Apply domain-specific function transforms (Go FunctionTransform parity)
-        content_html = crate::extractors::content::apply_domain_function_transforms(&domain, &content_html);
+        content_html =
+            crate::extractors::content::apply_domain_function_transforms(&domain, &content_html);
 
         // Fallback: only use JSON-LD articleBody if we truly extracted nothing
         // (lower threshold to avoid losing HTML formatting from proper extraction)
@@ -810,20 +814,29 @@ impl Client {
                                 // Extract content from next page using same pipeline
                                 let mut next_content_html = next_custom_extractor
                                     .and_then(|ce| ce.content.as_ref())
-                                    .and_then(|ce| extract_content_html_opts(&next_doc, ce, true).map(|v| v.join("\n\n")))
+                                    .and_then(|ce| {
+                                        extract_content_html_opts(&next_doc, ce, true)
+                                            .map(|v| v.join("\n\n"))
+                                    })
                                     .or_else(|| score_generic_content(&next_raw_html, &title))
                                     .unwrap_or_else(|| extract_body_inner_html(&next_doc));
 
                                 if !next_content_html.contains('<') {
                                     if let Some(raw) = next_custom_extractor
                                         .and_then(|ce| ce.content.as_ref())
-                                        .and_then(|ce| extract_content_raw_first_html(&next_doc, ce))
+                                        .and_then(|ce| {
+                                            extract_content_raw_first_html(&next_doc, ce)
+                                        })
                                     {
                                         next_content_html = raw;
                                     }
                                 }
 
-                                next_content_html = crate::extractors::content::apply_domain_function_transforms(&next_domain, &next_content_html);
+                                next_content_html =
+                                    crate::extractors::content::apply_domain_function_transforms(
+                                        &next_domain,
+                                        &next_content_html,
+                                    );
 
                                 // JSON-LD fallback for next page
                                 let next_plain = html_to_text(&next_content_html);
@@ -1101,7 +1114,11 @@ mod tests {
         let result = result.expect("parse should succeed");
         // Content is extracted from body since no article/main elements exist
         // With dom_query migration, content may be wrapped in div tags
-        assert!(result.content.contains("hi"), "expected content to contain 'hi', got: {}", result.content);
+        assert!(
+            result.content.contains("hi"),
+            "expected content to contain 'hi', got: {}",
+            result.content
+        );
         assert!(result.domain.contains("127.0.0.1") || result.domain.contains("localhost"));
         assert_eq!(result.word_count, 1); // "hi" is the only whitespace-separated word
     }
@@ -1134,7 +1151,11 @@ mod tests {
         let result = result.expect("parse_html should succeed");
         // Content is extracted from body since no article/main elements exist
         // With dom_query migration, content may be wrapped in div tags
-        assert!(result.content.contains("hi there"), "expected content to contain 'hi there', got: {}", result.content);
+        assert!(
+            result.content.contains("hi there"),
+            "expected content to contain 'hi there', got: {}",
+            result.content
+        );
         assert_eq!(result.domain, "example.com");
         assert_eq!(result.word_count, 2); // "hi" and "there" when converted to text
     }
@@ -1164,7 +1185,11 @@ mod tests {
             result.content
         );
         // word_count is computed from plain text of raw HTML ("Hello Body"), not markdown content
-        assert!(result.word_count >= 1, "expected at least 1 word, got: {}", result.word_count);
+        assert!(
+            result.word_count >= 1,
+            "expected at least 1 word, got: {}",
+            result.word_count
+        );
     }
 
     #[tokio::test]

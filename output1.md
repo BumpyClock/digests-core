@@ -1,0 +1,29 @@
+Advanced Nvidia AI chips can head back to China after all.
+
+The Department of Commerce will allow Nvidia to ship H200 chips to China, [as originally reported by Semafor](https://www.semafor.com/article/12/08/2025/commerce-to-open-up-exports-of-nvidia-h200-chips-to-china), to approved customers in the country. The U.S. will take a [25% cut of these sales](https://www.cnbc.com/2025/12/08/trump-nvidia-h200-sales-china.html), CNBC reported. 
+
+H200 chips are much more advanced than the H20 chips Nvidia developed specifically for the Chinese market, but the company would only be able to send H200s that are roughly 18 months old, Semafor reported.
+
+An Nvidia spokesperson told TechCrunch of the development: “We applaud President Trump’s decision to allow America’s chip industry to compete to support high paying jobs and manufacturing in America. Offering H200 to approved commercial customers, vetted by the Department of Commerce, strikes a thoughtful balance that is great for America.”
+
+The news report comes a week after U.S. Commerce Secretary Howard Lutnick said the decision on exporting these H200 chips to China [was in President Donald Trump’s hands](https://finance.yahoo.com/news/trump-could-approve-h200-exports-134428252.html?guccounter=1&guce_referrer=aHR0cHM6Ly93d3cuc2VtYWZvci5jb20v&guce_referrer_sig=AQAAAHQRzQWH648Ene_VMBSBfOA1fid50bu8Hb3ALtkTEIKdeKv-s6Si4ir5zNsapSNBc-YgZMpPmPWWntJoCduvgnYdADn9-1qOV5PvMopSq_YBi8D2gaJ4H1CK3dPGSlb0tgkE8WhnjFwugX1FV5uFst-wv7A2AzcC7lZ1ny9Ei7Ha).
+
+The decision to send the chips to China conflicts with Congressional concerns about national security.
+
+Pete Ricketts, a Republican senator from Nebraska, and Chris Coons, a Democratic senator from Delaware, introduced a bill on December 4 that would [block the export of advanced AI chips](https://www.ft.com/content/0e4e4799-b340-4cee-bdbc-6a6325f77eac) to China for more than two years.
+
+Techcrunch event
+
+The Secure and Feasible Exports Act (SAFE) Chips Act would require the Department of Commerce to deny any export license on advanced AI chips to China for 30 months. It’s unclear when legislators will vote on the proposed bill especially now that the Trump administration has given the green light to sell the H200 chips.
+
+While Congress has long been clear about sending advanced AI chips to China — on both sides of the aisle — President Trump has waffled on whether or not to allow the exports.
+
+The Trump administration hit chip companies like Nvidia with [licensing requirements](https://techcrunch.com/2025/04/15/nvidia-h20-chip-exports-hit-with-license-requirement-by-us-government/) to send their chips to China in April before it formally [rescinded a Biden administration diffusion rule](https://techcrunch.com/2025/05/13/trump-administration-officially-rescinds-bidens-ai-diffusion-rules/) that would have regulated AI chip exports in May. Over the summer, the U.S. government signaled that companies would be able to start sending chips to China as long as the government got a [15% cut of all revenue](https://www.ft.com/content/cd1a0729-a8ab-41e1-a4d2-8907f4c01cac), as chips became a [bargaining tool](https://techcrunch.com/2025/07/16/nvidias-resumption-of-h20-chip-sales-related-to-rare-earth-element-trade-talks/) in trade talks with China.
+
+However, by that point, the market for U.S.-developed chips in China was strained.
+
+In September, China’s internet regulator, the Cyberspace Administration of China, [banned domestic companies](https://techcrunch.com/2025/09/17/china-tells-its-tech-companies-they-cant-buy-ai-chips-from-nvidia/) from buying Nvidia’s chips, leaving companies in the country to rely on less advanced domestic chips from Alibaba and Huawei.
+
+On Monday, Trump said that Chinese president Xi Jinping “responded positively” to the latest H200 news in a [Truth Social post](https://truthsocial.com/@realDonaldTrump/posts/115686072737425841). 
+
+*This story was updated on December 8 when the proposed decision was confirmed.*

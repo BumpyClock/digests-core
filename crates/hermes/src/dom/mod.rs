@@ -12,8 +12,8 @@ pub mod scoring;
 
 pub use brs::{brs_to_ps, rewrite_top_level};
 pub use cleaners::{
-    is_empty_paragraph, is_unlikely_candidate, process_h1_tags,
-    should_remove_header, should_remove_image, clean_article,
+    clean_article, is_empty_paragraph, is_unlikely_candidate, process_h1_tags,
+    should_remove_header, should_remove_image,
 };
 pub use scoring::{
     compute_text_metrics, extract_best_content, find_top_candidate, get_node_id, get_tag_name,

@@ -6,8 +6,8 @@
 //! This module handles converting extracted content to various output formats
 //! including cleaned HTML, Markdown, and plain text representations.
 
-use regex::Regex;
 use dom_query::Document;
+use regex::Regex;
 
 /// Sanitize HTML using an ammonia policy that mirrors the Go bluemonday article policy.
 ///
@@ -20,8 +20,29 @@ use dom_query::Document;
 /// - id on headings/div/span
 pub fn sanitize_html(html: &str) -> String {
     let allowed_tags = [
-        "p", "br", "strong", "b", "em", "i", "u", "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol",
-        "li", "blockquote", "pre", "code", "img", "a", "span", "div",
+        "p",
+        "br",
+        "strong",
+        "b",
+        "em",
+        "i",
+        "u",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "ul",
+        "ol",
+        "li",
+        "blockquote",
+        "pre",
+        "code",
+        "img",
+        "a",
+        "span",
+        "div",
     ];
 
     let mut builder = ammonia::Builder::new();
@@ -110,7 +131,10 @@ fn convert_image_placeholders(text: &str) -> String {
     let re = Regex::new(r"\\?\[Image:\s*([^]]*?)\s+(https?://[^\s\]\\]+)\\?\s*\\?\]").unwrap();
     re.replace_all(text, |caps: &regex::Captures| {
         let alt = caps.get(1).map_or("", |m| m.as_str()).trim();
-        let url = caps.get(2).map_or("", |m| m.as_str()).trim_end_matches('\\');
+        let url = caps
+            .get(2)
+            .map_or("", |m| m.as_str())
+            .trim_end_matches('\\');
         format!("![{}]({})", alt, url)
     })
     .to_string()
