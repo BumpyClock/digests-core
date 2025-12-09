@@ -266,15 +266,16 @@ fn map_entry(
 ) -> FeedItem {
     let item_url = extract_item_url(entry);
 
-    // Extract summary (strip HTML)
-    let summary = entry
+    // Extract summary (raw HTML then stripped plain text)
+    let summary_html = entry
         .summary
         .as_ref()
-        .map(|t| strip_html(&t.content))
+        .map(|t| t.content.clone())
         .unwrap_or_default();
+    let summary = strip_html(&summary_html);
 
-    // Extract content: body if present, else src.href if present, else summary clone
-    let content = entry
+    // Extract content (prefer body/src); keep raw for image extraction, store plain text per Go parity
+    let content_raw = entry
         .content
         .as_ref()
         .and_then(|c| {
@@ -282,7 +283,8 @@ fn map_entry(
                 .clone()
                 .or_else(|| c.src.as_ref().map(|l| l.href.clone()))
         })
-        .unwrap_or_else(|| summary.clone());
+        .unwrap_or_else(|| summary_html.clone());
+    let content = strip_html(&content_raw);
 
     // Extract enclosures from links (rel=enclosure) and media.content, deduplicated
     let enclosures = extract_enclosures(entry);
@@ -297,8 +299,14 @@ fn map_entry(
     let explicit_flag = extract_explicit_flag(entry, item_ext);
 
     // Select image/thumbnail with priority cascade
-    let (image_url, thumbnail_url) =
-        select_image_thumbnail(entry, &enclosures, &content, &summary, &item_url, item_ext);
+    let (image_url, thumbnail_url) = select_image_thumbnail(
+        entry,
+        &enclosures,
+        &content_raw,
+        &summary_html,
+        &item_url,
+        item_ext,
+    );
 
     // Extract author (iTunes author if no standard author)
     let author = extract_entry_author(entry, item_ext);
@@ -473,8 +481,8 @@ fn extract_explicit_flag(entry: &Entry, item_ext: &ItemITunesExt) -> bool {
 fn select_image_thumbnail(
     entry: &Entry,
     enclosures: &[Enclosure],
-    content: &str,
-    summary: &str,
+    content_html: &str,
+    summary_html: &str,
     item_url: &str,
     item_ext: &ItemITunesExt,
 ) -> (Option<String>, Option<String>) {
@@ -506,12 +514,12 @@ fn select_image_thumbnail(
     } else {
         Some(item_url)
     };
-    if let Some(img_url) = extract_first_image(content, base_url) {
+    if let Some(img_url) = extract_first_image(content_html, base_url) {
         return (Some(img_url.clone()), Some(img_url));
     }
 
     // (5) First <img> from summary HTML
-    if let Some(img_url) = extract_first_image(summary, base_url) {
+    if let Some(img_url) = extract_first_image(summary_html, base_url) {
         return (Some(img_url.clone()), Some(img_url));
     }
 

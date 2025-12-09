@@ -1,10 +1,9 @@
 // ABOUTME: Go-compatible readability scoring for content extraction.
 // ABOUTME: Ports ScoreContent, FindTopCandidate, MergeSiblings from Go hermes.
 
-use ego_tree::NodeId;
+use dom_query::{Document, NodeId, Selection};
 use once_cell::sync::Lazy;
 use regex::Regex;
-use scraper::{ElementRef, Html, Selector};
 use std::collections::HashMap;
 
 // Scoring regex patterns matching Go constants.go
@@ -40,7 +39,7 @@ const HNEWS_CONTENT_SELECTORS: &[(&str, &str)] = &[
 /// Score storage using NodeId as key
 pub type NodeScores = HashMap<NodeId, i32>;
 
-    /// Helper: get a score from the map for a node
+/// Helper: get a score from the map for a node
 fn get_score_for(node_id: NodeId, scores: &NodeScores) -> i32 {
     *scores.get(&node_id).unwrap_or(&0)
 }
@@ -50,14 +49,24 @@ fn set_score_for(node_id: NodeId, value: i32, scores: &mut NodeScores) {
     scores.insert(node_id, value);
 }
 
+/// Helper: get tag name from a Selection (assumes single node)
+pub fn get_tag_name(selection: &Selection) -> String {
+    selection
+        .nodes()
+        .first()
+        .and_then(|node| node.node_name())
+        .unwrap_or_default()
+        .to_lowercase()
+}
+
 /// Helper: parse an attribute based score if present
-fn score_from_attrs(element: &ElementRef) -> Option<i32> {
-    if let Some(val) = element.value().attr("data-content-score") {
+fn score_from_attrs(selection: &Selection) -> Option<i32> {
+    if let Some(val) = selection.attr("data-content-score") {
         if let Ok(score) = val.parse::<i32>() {
             return Some(score);
         }
     }
-    if let Some(val) = element.value().attr("score") {
+    if let Some(val) = selection.attr("score") {
         if let Ok(score) = val.parse::<i32>() {
             return Some(score);
         }
@@ -105,11 +114,11 @@ fn score_paragraph(text: &str) -> i32 {
 }
 
 /// Score a node based on tag type
-fn score_node(element: &ElementRef) -> i32 {
-    let tag_name = element.value().name().to_lowercase();
+fn score_node(selection: &Selection) -> i32 {
+    let tag_name = get_tag_name(selection);
 
     if PARAGRAPH_SCORE_TAGS.is_match(&tag_name) {
-        let text = element.text().collect::<String>();
+        let text = selection.text();
         return score_paragraph(&text);
     }
 
@@ -133,35 +142,35 @@ fn score_node(element: &ElementRef) -> i32 {
 }
 
 /// Get weight based on className and id patterns
-pub fn get_weight(element: &ElementRef) -> i32 {
-    let class = element.value().attr("class").unwrap_or("");
-    let id = element.value().attr("id").unwrap_or("");
+pub fn get_weight(selection: &Selection) -> i32 {
+    let class = selection.attr("class").unwrap_or_default();
+    let id = selection.attr("id").unwrap_or_default();
     let mut score = 0i32;
 
     if !id.is_empty() {
-        if POSITIVE_SCORE_RE.is_match(id) {
+        if POSITIVE_SCORE_RE.is_match(&id) {
             score += 25;
         }
-        if NEGATIVE_SCORE_RE.is_match(id) {
+        if NEGATIVE_SCORE_RE.is_match(&id) {
             score -= 25;
         }
     }
 
     if !class.is_empty() {
         if score == 0 {
-            if POSITIVE_SCORE_RE.is_match(class) {
+            if POSITIVE_SCORE_RE.is_match(&class) {
                 score += 25;
             }
-            if NEGATIVE_SCORE_RE.is_match(class) {
+            if NEGATIVE_SCORE_RE.is_match(&class) {
                 score -= 25;
             }
         }
 
-        if PHOTO_HINTS_RE.is_match(class) {
+        if PHOTO_HINTS_RE.is_match(&class) {
             score += 10;
         }
 
-        if READABILITY_ASSET.is_match(class) {
+        if READABILITY_ASSET.is_match(&class) {
             score += 25;
         }
     }
@@ -169,22 +178,34 @@ pub fn get_weight(element: &ElementRef) -> i32 {
     score
 }
 
+/// Deprecated: Use get_weight directly
+#[deprecated(note = "Use get_weight directly instead")]
+pub fn get_weight_dq(sel: &Selection) -> i32 {
+    get_weight(sel)
+}
+
 /// Calculate link density (ratio of link text to total text)
-pub fn link_density(element: &ElementRef) -> f64 {
-    let total_text = element.text().collect::<String>();
+pub fn link_density(selection: &Selection) -> f64 {
+    let total_text = selection.text();
     let total_len = total_text.len();
 
     if total_len == 0 {
         return 0.0;
     }
 
-    let a_selector = Selector::parse("a").unwrap();
-    let link_text_len: usize = element
-        .select(&a_selector)
-        .map(|a| a.text().collect::<String>().len())
+    let link_text_len: usize = selection
+        .select("a")
+        .iter()
+        .map(|a| a.text().len())
         .sum();
 
     link_text_len as f64 / total_len as f64
+}
+
+/// Deprecated: Use link_density directly
+#[deprecated(note = "Use link_density directly instead")]
+pub fn link_density_dq(sel: &Selection) -> f64 {
+    link_density(sel)
 }
 
 /// Check if text ends with sentence-ending punctuation
@@ -202,43 +223,65 @@ pub fn normalize_spaces(text: &str) -> String {
     text.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
+/// Helper: get NodeId from a Selection
+pub fn get_node_id(selection: &Selection) -> Option<NodeId> {
+    selection.nodes().first().map(|node| node.id)
+}
+
+/// Helper: get parent selection
+fn get_parent<'a>(selection: &Selection<'a>) -> Option<Selection<'a>> {
+    let node = selection.nodes().first()?;
+    let parent = node.parent()?;
+    Some(Selection::from(parent))
+}
+
+/// Helper: check if element matches selector
+fn matches_selector(selection: &Selection, selector: &str) -> bool {
+    selection.is(selector)
+}
+
 /// Score content in a document using Go's algorithm
 /// This applies hNews boosting and double-pass paragraph scoring
-pub fn score_content(doc: &Html, weight_nodes: bool) -> NodeScores {
-    fn add_to_parent(element: &ElementRef, score: i32, scores: &mut NodeScores) {
-        if let Some(parent) = element.parent().and_then(ElementRef::wrap) {
-            let parent_id = parent.id();
-            let parent_score = get_score_for(parent_id, scores);
-            let addition = (score as f64 * 0.25) as i32;
-            set_score_for(parent_id, parent_score + addition, scores);
+pub fn score_content(doc: &Document, weight_nodes: bool) -> NodeScores {
+    fn add_to_parent(selection: &Selection, score: i32, scores: &mut NodeScores) {
+        if let Some(parent) = get_parent(selection) {
+            if let Some(parent_id) = get_node_id(&parent) {
+                let parent_score = get_score_for(parent_id, scores);
+                let addition = (score as f64 * 0.25) as i32;
+                set_score_for(parent_id, parent_score + addition, scores);
+            }
         }
     }
 
-    fn get_or_init_score(element: &ElementRef, scores: &mut NodeScores, weight_nodes: bool) -> i32 {
-        let node_id = element.id();
-        let existing = get_score_for(node_id, scores);
-        if existing != 0 {
-            return existing;
-        }
+    fn get_or_init_score(selection: &Selection, scores: &mut NodeScores, weight_nodes: bool) -> i32 {
+        if let Some(node_id) = get_node_id(selection) {
+            let existing = get_score_for(node_id, scores);
+            if existing != 0 {
+                return existing;
+            }
 
-        let mut score = score_node(element);
-        if weight_nodes {
-            score += get_weight(element);
-        }
+            let mut score = score_node(selection);
+            if weight_nodes {
+                score += get_weight(selection);
+            }
 
-        add_to_parent(element, score, scores);
-        score
+            add_to_parent(selection, score, scores);
+            score
+        } else {
+            0
+        }
     }
 
     fn add_score_to(
-        element: &ElementRef,
+        selection: &Selection,
         amount: i32,
         scores: &mut NodeScores,
         weight_nodes: bool,
     ) {
-        let node_id = element.id();
-        let base = get_or_init_score(element, scores, weight_nodes);
-        set_score_for(node_id, base + amount, scores);
+        if let Some(node_id) = get_node_id(selection) {
+            let base = get_or_init_score(selection, scores, weight_nodes);
+            set_score_for(node_id, base + amount, scores);
+        }
     }
 
     let mut scores: NodeScores = HashMap::new();
@@ -246,46 +289,68 @@ pub fn score_content(doc: &Html, weight_nodes: bool) -> NodeScores {
     // First, boost hNews selectors
     for (parent_sel, child_sel) in HNEWS_CONTENT_SELECTORS {
         let combined = format!("{} {}", parent_sel, child_sel);
-        let selector = match Selector::parse(&combined) {
-            Ok(s) => s,
-            Err(_) => continue,
-        };
 
-        for element in doc.select(&selector) {
-            if let Ok(parent_selector) = Selector::parse(parent_sel) {
-                // Walk ancestors until matching parent selector
-                let mut current = element.parent();
-                while let Some(parent_node) = current {
-                    if let Some(parent_el) = ElementRef::wrap(parent_node) {
-                        if parent_selector.matches(&parent_el) {
-                            add_score_to(&parent_el, 80, &mut scores, weight_nodes);
-                            break;
-                        }
-                    }
-                    current = parent_node.parent();
+        for element in doc.select(&combined).iter() {
+            // Walk ancestors until matching parent selector
+            let mut current = element.clone();
+            loop {
+                let parent_opt = get_parent(&current);
+                if parent_opt.is_none() {
+                    break;
                 }
+                let parent = parent_opt.unwrap();
+
+                if matches_selector(&parent, parent_sel) {
+                    add_score_to(&parent, 80, &mut scores, weight_nodes);
+                    break;
+                }
+                current = parent;
             }
         }
     }
 
+    // Helper to check if element is inside <head>
+    fn is_inside_head(selection: &Selection) -> bool {
+        let mut current = selection.clone();
+        loop {
+            let parent_opt = get_parent(&current);
+            if parent_opt.is_none() {
+                break;
+            }
+            let parent = parent_opt.unwrap();
+
+            let tag_name = get_tag_name(&parent);
+            if tag_name == "head" {
+                return true;
+            }
+            current = parent;
+        }
+        false
+    }
+
     // Double-pass paragraph scoring
     for _ in 0..2 {
-        let p_pre_selector = Selector::parse("p, pre").unwrap();
-        for element in doc.select(&p_pre_selector) {
-            let node_id = element.id();
-            if scores.contains_key(&node_id) {
+        for element in doc.select("p, pre").iter() {
+            // Skip elements inside <head> - they shouldn't be scored
+            if is_inside_head(&element) {
                 continue;
             }
 
-            let score = get_or_init_score(&element, &mut scores, weight_nodes);
-            set_score_for(node_id, score, &mut scores);
+            if let Some(node_id) = get_node_id(&element) {
+                if scores.contains_key(&node_id) {
+                    continue;
+                }
 
-            let raw_score = score_node(&element);
+                let score = get_or_init_score(&element, &mut scores, weight_nodes);
+                set_score_for(node_id, score, &mut scores);
 
-            if let Some(parent) = element.parent().and_then(ElementRef::wrap) {
-                add_score_to(&parent, raw_score, &mut scores, weight_nodes);
-                if let Some(grandparent) = parent.parent().and_then(ElementRef::wrap) {
-                    add_score_to(&grandparent, raw_score / 2, &mut scores, weight_nodes);
+                let raw_score = score_node(&element);
+
+                if let Some(parent) = get_parent(&element) {
+                    add_score_to(&parent, raw_score, &mut scores, weight_nodes);
+                    if let Some(grandparent) = get_parent(&parent) {
+                        add_score_to(&grandparent, raw_score / 2, &mut scores, weight_nodes);
+                    }
                 }
             }
         }
@@ -295,57 +360,55 @@ pub fn score_content(doc: &Html, weight_nodes: bool) -> NodeScores {
 }
 
 /// Find the top scoring candidate element
-pub fn find_top_candidate<'a>(doc: &'a Html, scores: &NodeScores) -> Option<ElementRef<'a>> {
-    let mut best_candidate: Option<ElementRef<'a>> = None;
+pub fn find_top_candidate<'a>(doc: &'a Document, scores: &NodeScores) -> Option<Selection<'a>> {
+    let mut best_candidate: Option<Selection<'a>> = None;
     let mut top_score = 0i32;
 
     // Find all elements with scores (from map or inline attrs)
-    let all_selector = Selector::parse("*").unwrap();
-    for element in doc.select(&all_selector) {
-        let node_id = element.id();
+    for element in doc.select("*").iter() {
+        if let Some(node_id) = get_node_id(&element) {
+            // Prefer explicit score map, but fall back to data-content-score/score attrs
+            let raw_score = scores
+                .get(&node_id)
+                .copied()
+                .or_else(|| score_from_attrs(&element));
 
-        // Prefer explicit score map, but fall back to data-content-score/score attrs
-        let raw_score = scores
-            .get(&node_id)
-            .copied()
-            .or_else(|| score_from_attrs(&element));
+            let score = match raw_score {
+                Some(v) if v != 0 => v,
+                _ => continue,
+            };
 
-        let score = match raw_score {
-            Some(v) if v != 0 => v,
-            _ => continue,
-        };
+            // Skip non-top-candidate tags
+            let tag_name = get_tag_name(&element);
+            if NON_TOP_CANDIDATE_TAGS_RE.is_match(&tag_name) {
+                continue;
+            }
+            // Avoid selecting <body> as primary candidate when other options exist.
+            // We'll fall back to body later if no suitable candidate remains.
+            if tag_name == "body" {
+                continue;
+            }
 
-        // Skip non-top-candidate tags
-        let tag_name = element.value().name().to_lowercase();
-        if NON_TOP_CANDIDATE_TAGS_RE.is_match(&tag_name) {
-            continue;
-        }
-        // Avoid selecting <body> as primary candidate when other options exist.
-        // We'll fall back to body later if no suitable candidate remains.
-        if tag_name == "body" {
-            continue;
-        }
+            // Penalize very link-heavy candidates (aligns with digests-api heuristic)
+            let density = link_density(&element);
+            let adjusted_score = if density > 0.5 {
+                ((score as f64) * (1.0 - density)).round() as i32
+            } else {
+                score
+            };
 
-        // Penalize very link-heavy candidates (aligns with digests-api heuristic)
-        let density = link_density(&element);
-        let adjusted_score = if density > 0.5 {
-            ((score as f64) * (1.0 - density)).round() as i32
-        } else {
-            score
-        };
-
-        if adjusted_score > top_score {
-            top_score = adjusted_score;
-            best_candidate = Some(element);
+            if adjusted_score > top_score {
+                top_score = adjusted_score;
+                best_candidate = Some(element);
+            }
         }
     }
 
     // Fall back to body if no candidate found
     if best_candidate.is_none() {
-        if let Ok(body_sel) = Selector::parse("body") {
-            if let Some(body) = doc.select(&body_sel).next() {
-                return Some(body);
-            }
+        let body = doc.select("body").first();
+        if body.length() > 0 {
+            return Some(body);
         }
     }
 
@@ -354,83 +417,82 @@ pub fn find_top_candidate<'a>(doc: &'a Html, scores: &NodeScores) -> Option<Elem
 
 /// Merge siblings that may be part of the main content
 /// Returns the HTML of the merged content (wrapping div when siblings qualify)
-pub fn merge_siblings(candidate: ElementRef, top_score: i32, scores: &NodeScores) -> String {
+pub fn merge_siblings(candidate: Selection, top_score: i32, scores: &NodeScores) -> String {
     // If no parent, return candidate's HTML
-    let parent_node = match candidate.parent() {
+    let parent = match get_parent(&candidate) {
         Some(p) => p,
-        None => return candidate.html(),
+        None => return candidate.html().to_string(),
     };
 
     // Calculate sibling score threshold: max(10, topScore * 0.25)
     let sibling_threshold = 10i32.max((top_score as f64 * 0.25) as i32);
 
-    let candidate_class = candidate.value().attr("class").unwrap_or("");
+    let candidate_class = candidate.attr("class").unwrap_or_default();
+    let candidate_id = get_node_id(&candidate);
 
     // Collect elements to include
-    let mut included: Vec<ElementRef> = Vec::new();
+    let mut included: Vec<Selection> = Vec::new();
 
-    for child in parent_node.children() {
-        if let Some(sibling) = ElementRef::wrap(child) {
-            let tag_name = sibling.value().name().to_lowercase();
+    // Get children of parent
+    for child in parent.children().iter() {
+        let tag_name = get_tag_name(&child);
 
-            // Skip non-top-candidate tags
-            if NON_TOP_CANDIDATE_TAGS_RE.is_match(&tag_name) {
+        // Skip non-top-candidate tags
+        if NON_TOP_CANDIDATE_TAGS_RE.is_match(&tag_name) {
+            continue;
+        }
+
+        let sibling_id = get_node_id(&child);
+        let sibling_score = sibling_id
+            .and_then(|id| scores.get(&id).copied())
+            .or_else(|| score_from_attrs(&child))
+            .unwrap_or(0);
+
+        // Always include the candidate itself
+        if sibling_id == candidate_id {
+            included.push(child.clone());
+            continue;
+        }
+
+        if sibling_score > 0 {
+            // Calculate content bonus
+            let mut content_bonus = 0i32;
+            let density = link_density(&child);
+
+            if density < 0.05 {
+                content_bonus += 20;
+            }
+            if density >= 0.5 {
+                // If it's very link-heavy, skip adding as sibling
                 continue;
             }
 
-            let sibling_id = sibling.id();
-            let sibling_score = scores
-                .get(&sibling_id)
-                .copied()
-                .or_else(|| score_from_attrs(&sibling))
-                .unwrap_or(0);
+            // Class match bonus
+            let sibling_class = child.attr("class").unwrap_or_default();
+            if !sibling_class.is_empty() && sibling_class == candidate_class {
+                content_bonus += (top_score as f64 * 0.2) as i32;
+            }
 
-            // Always include the candidate itself
-            if sibling.id() == candidate.id() {
-                included.push(sibling);
+            let new_score = sibling_score + content_bonus;
+
+            if new_score >= sibling_threshold {
+                included.push(child.clone());
                 continue;
             }
 
-            if sibling_score > 0 {
-                // Calculate content bonus
-                let mut content_bonus = 0i32;
-                let density = link_density(&sibling);
+            // Special handling for paragraphs
+            if tag_name == "p" {
+                let sibling_text = child.text();
+                let text_len = normalize_spaces(&sibling_text).len();
 
-                if density < 0.05 {
-                    content_bonus += 20;
-                }
-                if density >= 0.5 {
-                    // If it's very link-heavy, skip adding as sibling
+                if text_len > 80 && density < 0.25 {
+                    included.push(child.clone());
                     continue;
                 }
 
-                // Class match bonus
-                let sibling_class = sibling.value().attr("class").unwrap_or("");
-                if !sibling_class.is_empty() && sibling_class == candidate_class {
-                    content_bonus += (top_score as f64 * 0.2) as i32;
-                }
-
-                let new_score = sibling_score + content_bonus;
-
-                if new_score >= sibling_threshold {
-                    included.push(sibling);
+                if text_len <= 80 && density == 0.0 && has_sentence_end(&sibling_text) {
+                    included.push(child.clone());
                     continue;
-                }
-
-                // Special handling for paragraphs
-                if tag_name == "p" {
-                    let sibling_text = sibling.text().collect::<String>();
-                    let text_len = normalize_spaces(&sibling_text).len();
-
-                    if text_len > 80 && density < 0.25 {
-                        included.push(sibling);
-                        continue;
-                    }
-
-                    if text_len <= 80 && density == 0.0 && has_sentence_end(&sibling_text) {
-                        included.push(sibling);
-                        continue;
-                    }
                 }
             }
         }
@@ -438,14 +500,14 @@ pub fn merge_siblings(candidate: ElementRef, top_score: i32, scores: &NodeScores
 
     // If only candidate was included, return its outer HTML with score
     if included.len() <= 1 {
-        return candidate.html();
+        return candidate.html().to_string();
     }
 
     // Wrap multiple merged elements in a div preserving order
     let mut output = String::new();
     output.push_str("<div>");
     for node in included {
-        output.push_str(&node.html());
+        output.push_str(&node.html().to_string());
     }
     output.push_str("</div>");
     output
@@ -481,7 +543,7 @@ fn is_void_element(tag: &str) -> bool {
 }
 
 /// Full content extraction pipeline using Go's scoring algorithm
-pub fn extract_best_content(doc: &Html) -> Option<String> {
+pub fn extract_best_content(doc: &Document) -> Option<String> {
     // Score all content
     let scores = score_content(doc, true);
 
@@ -489,8 +551,9 @@ pub fn extract_best_content(doc: &Html) -> Option<String> {
     let candidate = find_top_candidate(doc, &scores)?;
 
     // Get top score for merge threshold calculation
-    let candidate_id = candidate.id();
-    let top_score = scores.get(&candidate_id).copied().unwrap_or(0);
+    let top_score = get_node_id(&candidate)
+        .and_then(|id| scores.get(&id).copied())
+        .unwrap_or(0);
 
     // Merge siblings and return content
     Some(merge_siblings(candidate, top_score, &scores))
@@ -519,9 +582,8 @@ mod tests {
     #[test]
     fn test_get_weight() {
         let html = r#"<div class="article-content" id="main">test</div>"#;
-        let doc = Html::parse_fragment(html);
-        let sel = Selector::parse("div").unwrap();
-        let el = doc.select(&sel).next().unwrap();
+        let doc = Document::from(html);
+        let el = doc.select("div").first();
 
         let weight = get_weight(&el);
         // Should be positive due to "article" and "content" in class, "main" in id
@@ -531,9 +593,8 @@ mod tests {
     #[test]
     fn test_link_density() {
         let html = r##"<div>Some text <a href="#">link</a> more text</div>"##;
-        let doc = Html::parse_fragment(html);
-        let sel = Selector::parse("div").unwrap();
-        let el = doc.select(&sel).next().unwrap();
+        let doc = Document::from(html);
+        let el = doc.select("div").first();
 
         let density = link_density(&el);
         assert!(density > 0.0 && density < 1.0);
@@ -559,7 +620,7 @@ mod tests {
                 </article>
             </body></html>
         "#;
-        let doc = Html::parse_document(html);
+        let doc = Document::from(html);
         let scores = score_content(&doc, true);
 
         // Should have some scored elements
@@ -579,7 +640,7 @@ mod tests {
                 <aside>Sidebar content</aside>
             </body></html>
         "#;
-        let doc = Html::parse_document(html);
+        let doc = Document::from(html);
         let content = extract_best_content(&doc);
 
         assert!(content.is_some());
@@ -595,12 +656,13 @@ mod tests {
                 <div score="10">Low score</div>
             </body></html>
         "#;
-        let doc = Html::parse_document(html);
+        let doc = Document::from(html);
         let scores = NodeScores::new(); // force attribute-based scoring
 
         let candidate = find_top_candidate(&doc, &scores).expect("candidate");
-        assert_eq!(candidate.value().name(), "div");
-        let text = normalize_spaces(&candidate.text().collect::<String>());
+        let tag = get_tag_name(&candidate);
+        assert_eq!(tag, "div");
+        let text = normalize_spaces(&candidate.text());
         assert_eq!(text, "High score pick");
     }
 
@@ -612,13 +674,13 @@ mod tests {
                 <div score="30">Valid content</div>
             </body></html>
         "#;
-        let doc = Html::parse_document(html);
+        let doc = Document::from(html);
         let scores = NodeScores::new();
 
         let candidate = find_top_candidate(&doc, &scores).expect("candidate");
-        assert_eq!(candidate.value().name(), "div");
+        assert_eq!(get_tag_name(&candidate), "div");
         assert_eq!(
-            normalize_spaces(&candidate.text().collect::<String>()),
+            normalize_spaces(&candidate.text()),
             "Valid content"
         );
     }
@@ -626,11 +688,11 @@ mod tests {
     #[test]
     fn test_find_top_candidate_fallbacks_to_body() {
         let html = "<html><body><div>No scores</div></body></html>";
-        let doc = Html::parse_document(html);
+        let doc = Document::from(html);
         let scores = NodeScores::new();
 
         let candidate = find_top_candidate(&doc, &scores).expect("fallback body");
-        assert_eq!(candidate.value().name(), "body");
+        assert_eq!(get_tag_name(&candidate), "body");
     }
 
     #[test]
@@ -641,15 +703,17 @@ mod tests {
                 <div class="sibling" data-content-score="20">Sibling paragraph with enough length to be included because it has more than eighty characters and low link density.</div>
             </div>
         "#;
-        let doc = Html::parse_fragment(html);
-        let cand_sel = Selector::parse(".candidate").unwrap();
-        let sib_sel = Selector::parse(".sibling").unwrap();
-        let candidate = doc.select(&cand_sel).next().unwrap();
-        let sibling = doc.select(&sib_sel).next().unwrap();
+        let doc = Document::from(html);
+        let candidate = doc.select(".candidate").first();
+        let sibling = doc.select(".sibling").first();
 
         let mut scores = NodeScores::new();
-        scores.insert(candidate.id(), 50);
-        scores.insert(sibling.id(), 20);
+        if let Some(cand_id) = get_node_id(&candidate) {
+            scores.insert(cand_id, 50);
+        }
+        if let Some(sib_id) = get_node_id(&sibling) {
+            scores.insert(sib_id, 20);
+        }
 
         let merged = merge_siblings(candidate, 50, &scores);
         assert!(merged.starts_with("<div>"));
@@ -667,13 +731,17 @@ mod tests {
                 <div class="valid" data-content-score="20">Valid sibling</div>
             </div>
         "#;
-        let doc = Html::parse_fragment(html);
-        let cand = doc.select(&Selector::parse(".candidate").unwrap()).next().unwrap();
-        let valid = doc.select(&Selector::parse(".valid").unwrap()).next().unwrap();
+        let doc = Document::from(html);
+        let cand = doc.select(".candidate").first();
+        let valid = doc.select(".valid").first();
 
         let mut scores = NodeScores::new();
-        scores.insert(cand.id(), 50);
-        scores.insert(valid.id(), 20);
+        if let Some(cand_id) = get_node_id(&cand) {
+            scores.insert(cand_id, 50);
+        }
+        if let Some(valid_id) = get_node_id(&valid) {
+            scores.insert(valid_id, 20);
+        }
 
         let merged = merge_siblings(cand, 50, &scores);
         assert!(merged.contains("Main content"));
@@ -694,10 +762,12 @@ mod tests {
             </div>
         "##;
 
-        let doc = Html::parse_fragment(html);
-        let cand = doc.select(&Selector::parse(".candidate").unwrap()).next().unwrap();
+        let doc = Document::from(html);
+        let cand = doc.select(".candidate").first();
         let mut scores = NodeScores::new();
-        scores.insert(cand.id(), 50);
+        if let Some(cand_id) = get_node_id(&cand) {
+            scores.insert(cand_id, 50);
+        }
 
         let merged = merge_siblings(cand, 50, &scores);
 

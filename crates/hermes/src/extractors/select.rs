@@ -13,7 +13,7 @@
 //! - `allow_multiple`: when true, returns all matches from the winning selector;
 //!   when false, returns only the first match.
 
-use scraper::{Html, Selector};
+use dom_query::Document;
 
 use crate::extractors::custom::{FieldExtractor, SelectorSpec};
 
@@ -31,7 +31,7 @@ fn normalize_whitespace(s: &str) -> String {
 /// Returns values from the first selector that yields at least one non-empty match.
 /// If `fe.allow_multiple` is false, returns only the first non-empty value (as a single-element vec).
 /// If no selector yields matches, returns `None`.
-pub fn extract_field_text(doc: &Html, fe: &FieldExtractor) -> Option<Vec<String>> {
+pub fn extract_field_text(doc: &Document, fe: &FieldExtractor) -> Option<Vec<String>> {
     for spec in &fe.selectors {
         let results = extract_from_spec(doc, spec);
         if !results.is_empty() {
@@ -49,12 +49,12 @@ pub fn extract_field_text(doc: &Html, fe: &FieldExtractor) -> Option<Vec<String>
 /// Convenience function that returns only the first extracted value.
 ///
 /// Uses `extract_field_text` and returns the first element, or `None` if empty.
-pub fn extract_field_first_text(doc: &Html, fe: &FieldExtractor) -> Option<String> {
+pub fn extract_field_first_text(doc: &Document, fe: &FieldExtractor) -> Option<String> {
     extract_field_text(doc, fe).and_then(|v| v.into_iter().next())
 }
 
 /// Extracts values from a single selector spec.
-fn extract_from_spec(doc: &Html, spec: &SelectorSpec) -> Vec<String> {
+fn extract_from_spec(doc: &Document, spec: &SelectorSpec) -> Vec<String> {
     match spec {
         SelectorSpec::Css(css) => extract_text_from_css(doc, css),
         SelectorSpec::CssAttr(parts) => {
@@ -71,45 +71,47 @@ fn extract_from_spec(doc: &Html, spec: &SelectorSpec) -> Vec<String> {
 }
 
 /// Extracts inner text from elements matching a CSS selector.
-fn extract_text_from_css(doc: &Html, css: &str) -> Vec<String> {
-    let selector = match Selector::parse(css) {
-        Ok(s) => s,
-        Err(_) => return vec![],
-    };
+fn extract_text_from_css(doc: &Document, css: &str) -> Vec<String> {
+    // dom_query panics on invalid selectors, so catch it
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        doc.select(css)
+            .iter()
+            .filter_map(|el| {
+                let text = el.text();
+                let normalized = normalize_whitespace(&text);
+                if normalized.is_empty() {
+                    None
+                } else {
+                    Some(normalized)
+                }
+            })
+            .collect()
+    }));
 
-    doc.select(&selector)
-        .filter_map(|el| {
-            let text: String = el.text().collect::<Vec<_>>().join(" ");
-            let normalized = normalize_whitespace(&text);
-            if normalized.is_empty() {
-                None
-            } else {
-                Some(normalized)
-            }
-        })
-        .collect()
+    result.unwrap_or_default()
 }
 
 /// Extracts an attribute value from elements matching a CSS selector.
-fn extract_attr_from_css(doc: &Html, css: &str, attr: &str) -> Vec<String> {
-    let selector = match Selector::parse(css) {
-        Ok(s) => s,
-        Err(_) => return vec![],
-    };
-
-    doc.select(&selector)
-        .filter_map(|el| {
-            el.value().attr(attr).map(|v| {
-                let trimmed = v.trim().to_string();
-                if trimmed.is_empty() {
-                    None
-                } else {
-                    Some(trimmed)
-                }
+fn extract_attr_from_css(doc: &Document, css: &str, attr: &str) -> Vec<String> {
+    // dom_query panics on invalid selectors, so catch it
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        doc.select(css)
+            .iter()
+            .filter_map(|el| {
+                el.attr(attr).map(|v| {
+                    let trimmed = v.trim().to_string();
+                    if trimmed.is_empty() {
+                        None
+                    } else {
+                        Some(trimmed)
+                    }
+                })
             })
-        })
-        .flatten()
-        .collect()
+            .flatten()
+            .collect()
+    }));
+
+    result.unwrap_or_default()
 }
 
 #[cfg(test)]
@@ -136,8 +138,8 @@ mod tests {
         </html>
     "#;
 
-    fn parse_html() -> Html {
-        Html::parse_document(SAMPLE_HTML)
+    fn parse_html() -> Document {
+        Document::from(SAMPLE_HTML)
     }
 
     #[test]

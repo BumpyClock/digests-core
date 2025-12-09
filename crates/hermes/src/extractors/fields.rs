@@ -12,7 +12,7 @@
 //! - Whitespace is normalized (collapsed to single spaces, trimmed).
 //! - Empty strings are treated as no match.
 
-use scraper::{Html, Selector};
+use dom_query::Document;
 
 /// Normalizes whitespace in a string by collapsing runs of whitespace into single spaces.
 fn normalize_whitespace(s: &str) -> String {
@@ -31,15 +31,10 @@ fn normalize_whitespace(s: &str) -> String {
 ///
 /// # Returns
 /// `Some(String)` with the trimmed attribute value, or `None` if no match found.
-pub fn extract_first_attr(doc: &Html, selectors: &[&str], attr: &str) -> Option<String> {
+pub fn extract_first_attr(doc: &Document, selectors: &[&str], attr: &str) -> Option<String> {
     for &sel_str in selectors {
-        let sel = match Selector::parse(sel_str) {
-            Ok(s) => s,
-            Err(_) => continue,
-        };
-
-        for el in doc.select(&sel) {
-            if let Some(value) = el.value().attr(attr) {
+        for el in doc.select(sel_str).iter() {
+            if let Some(value) = el.attr(attr) {
                 let trimmed = value.trim();
                 if !trimmed.is_empty() {
                     return Some(trimmed.to_string());
@@ -61,7 +56,7 @@ pub fn extract_first_attr(doc: &Html, selectors: &[&str], attr: &str) -> Option<
 ///
 /// # Returns
 /// `Some(String)` with the extracted text, or `None` if no match found.
-pub fn extract_first_text(doc: &Html, selectors: &[&str]) -> Option<String> {
+pub fn extract_first_text(doc: &Document, selectors: &[&str]) -> Option<String> {
     extract_field_text_single(doc, selectors)
 }
 
@@ -96,10 +91,9 @@ pub fn normalize_lang(value: &str) -> String {
 ///
 /// # Returns
 /// `Some(String)` with the content attribute value, or `None` if not found or empty.
-pub fn extract_meta_content(doc: &Html, selector: &str) -> Option<String> {
-    let sel = Selector::parse(selector).ok()?;
-    for el in doc.select(&sel) {
-        if let Some(content) = el.value().attr("content") {
+pub fn extract_meta_content(doc: &Document, selector: &str) -> Option<String> {
+    for el in doc.select(selector).iter() {
+        if let Some(content) = el.attr("content") {
             let trimmed = content.trim();
             if !trimmed.is_empty() {
                 return Some(trimmed.to_string());
@@ -121,10 +115,9 @@ pub fn extract_meta_content(doc: &Html, selector: &str) -> Option<String> {
 ///
 /// # Returns
 /// `Some(String)` with the attribute value, or `None` if not found or empty.
-pub fn extract_attr_first(doc: &Html, selector: &str, attr: &str) -> Option<String> {
-    let sel = Selector::parse(selector).ok()?;
-    for el in doc.select(&sel) {
-        if let Some(value) = el.value().attr(attr) {
+pub fn extract_attr_first(doc: &Document, selector: &str, attr: &str) -> Option<String> {
+    for el in doc.select(selector).iter() {
+        if let Some(value) = el.attr(attr) {
             let trimmed = value.trim();
             if !trimmed.is_empty() {
                 return Some(trimmed.to_string());
@@ -148,7 +141,7 @@ pub fn extract_attr_first(doc: &Html, selector: &str, attr: &str) -> Option<Stri
 ///
 /// # Returns
 /// `Some(String)` with the extracted text, or `None` if no selector yields a match.
-pub fn extract_field_text_single(doc: &Html, selectors: &[&str]) -> Option<String> {
+pub fn extract_field_text_single(doc: &Document, selectors: &[&str]) -> Option<String> {
     for &sel_str in selectors {
         // For meta tags, extract content attribute
         if sel_str.starts_with("meta[") {
@@ -159,13 +152,8 @@ pub fn extract_field_text_single(doc: &Html, selectors: &[&str]) -> Option<Strin
         }
 
         // For other elements, extract inner text
-        let sel = match Selector::parse(sel_str) {
-            Ok(s) => s,
-            Err(_) => continue,
-        };
-
-        for el in doc.select(&sel) {
-            let text: String = el.text().collect::<Vec<_>>().join(" ");
+        for el in doc.select(sel_str).iter() {
+            let text = el.text();
             let normalized = normalize_whitespace(&text);
             if !normalized.is_empty() {
                 return Some(normalized);
@@ -197,8 +185,8 @@ mod tests {
         </html>
     "#;
 
-    fn parse_html() -> Html {
-        Html::parse_document(SAMPLE_HTML)
+    fn parse_html() -> Document {
+        Document::from(SAMPLE_HTML)
     }
 
     #[test]

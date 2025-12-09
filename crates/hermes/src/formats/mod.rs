@@ -7,7 +7,7 @@
 //! including cleaned HTML, Markdown, and plain text representations.
 
 use regex::Regex;
-use scraper::{Html, Selector};
+use dom_query::Document;
 
 /// Sanitize HTML using an ammonia policy that mirrors the Go bluemonday article policy.
 ///
@@ -141,8 +141,8 @@ pub fn html_to_text(html: &str) -> String {
     // Preprocess: convert <br> to newlines
     let preprocessed = preprocess_br_tags(html);
 
-    let document = Html::parse_document(&preprocessed);
-    let raw_text: String = document.root_element().text().collect::<Vec<_>>().join(" ");
+    let document = Document::from(&*preprocessed);
+    let raw_text = document.text().to_string();
 
     // Collapse horizontal whitespace (spaces/tabs) but preserve newlines
     let re_spaces = Regex::new(r"[^\S\n]+").unwrap();
@@ -160,62 +160,57 @@ pub fn html_to_text(html: &str) -> String {
 /// Tries selectors in order: `<title>`, `meta[property=og:title]`,
 /// `meta[name=title]`, `<h1>`, `<h2>`. Returns the first non-empty trimmed text.
 pub fn extract_title(html: &str) -> Option<String> {
-    let document = Html::parse_document(html);
+    let document = Document::from(html);
 
     // Try <title> tag first
-    if let Ok(selector) = Selector::parse("title") {
-        if let Some(element) = document.select(&selector).next() {
-            let text: String = element.text().collect();
-            let trimmed = text.trim();
-            if !trimmed.is_empty() {
-                return Some(trimmed.to_string());
-            }
+    let selection = document.select("title");
+    if selection.length() > 0 {
+        let text = selection.text().to_string();
+        let trimmed = text.trim();
+        if !trimmed.is_empty() {
+            return Some(trimmed.to_string());
         }
     }
 
     // Try og:title meta tag
-    if let Ok(selector) = Selector::parse("meta[property='og:title']") {
-        if let Some(element) = document.select(&selector).next() {
-            if let Some(content) = element.value().attr("content") {
-                let trimmed = content.trim();
-                if !trimmed.is_empty() {
-                    return Some(trimmed.to_string());
-                }
+    let selection = document.select("meta[property='og:title']");
+    if selection.length() > 0 {
+        if let Some(content) = selection.attr("content") {
+            let trimmed = content.trim();
+            if !trimmed.is_empty() {
+                return Some(trimmed.to_string());
             }
         }
     }
 
     // Try meta[name=title]
-    if let Ok(selector) = Selector::parse("meta[name='title']") {
-        if let Some(element) = document.select(&selector).next() {
-            if let Some(content) = element.value().attr("content") {
-                let trimmed = content.trim();
-                if !trimmed.is_empty() {
-                    return Some(trimmed.to_string());
-                }
+    let selection = document.select("meta[name='title']");
+    if selection.length() > 0 {
+        if let Some(content) = selection.attr("content") {
+            let trimmed = content.trim();
+            if !trimmed.is_empty() {
+                return Some(trimmed.to_string());
             }
         }
     }
 
     // Fall back to first <h1>
-    if let Ok(selector) = Selector::parse("h1") {
-        if let Some(element) = document.select(&selector).next() {
-            let text: String = element.text().collect();
-            let trimmed = text.trim();
-            if !trimmed.is_empty() {
-                return Some(trimmed.to_string());
-            }
+    let selection = document.select("h1");
+    if selection.length() > 0 {
+        let text = selection.text().to_string();
+        let trimmed = text.trim();
+        if !trimmed.is_empty() {
+            return Some(trimmed.to_string());
         }
     }
 
     // Fall back to first <h2>
-    if let Ok(selector) = Selector::parse("h2") {
-        if let Some(element) = document.select(&selector).next() {
-            let text: String = element.text().collect();
-            let trimmed = text.trim();
-            if !trimmed.is_empty() {
-                return Some(trimmed.to_string());
-            }
+    let selection = document.select("h2");
+    if selection.length() > 0 {
+        let text = selection.text().to_string();
+        let trimmed = text.trim();
+        if !trimmed.is_empty() {
+            return Some(trimmed.to_string());
         }
     }
 

@@ -12,10 +12,10 @@ pub mod scoring;
 
 pub use brs::{brs_to_ps, rewrite_top_level};
 pub use cleaners::{
-    clean_tags_filter, is_empty_paragraph, is_unlikely_candidate, process_h1_tags,
+    is_empty_paragraph, is_unlikely_candidate, process_h1_tags,
     should_remove_header, should_remove_image, clean_article,
 };
 pub use scoring::{
-    extract_best_content, find_top_candidate, get_weight, has_sentence_end, link_density,
-    merge_siblings, normalize_spaces, score_content,
+    extract_best_content, find_top_candidate, get_node_id, get_tag_name, get_weight,
+    has_sentence_end, link_density, merge_siblings, normalize_spaces, score_content,
 };

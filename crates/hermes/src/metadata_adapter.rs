@@ -1,7 +1,7 @@
 // ABOUTME: Lightweight metadata-only extractor for head parsing.
 // ABOUTME: Extracts OG/Twitter/meta tags without full readability processing.
 
-use scraper::{Html, Selector};
+use dom_query::Document;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -29,11 +29,13 @@ pub struct Metadata {
 }
 
 /// Helper to extract meta content by property attribute.
-fn get_meta_property(document: &Html, property: &str) -> Option<String> {
+fn get_meta_property(document: &Document, property: &str) -> Option<String> {
     let sel_str = format!("meta[property='{}']", property);
-    let sel = Selector::parse(&sel_str).ok()?;
-    let elem = document.select(&sel).next()?;
-    let content = elem.value().attr("content")?;
+    let elem = document.select(&sel_str);
+    if elem.length() == 0 {
+        return None;
+    }
+    let content = elem.attr("content")?;
     let trimmed = content.trim();
     if trimmed.is_empty() {
         None
@@ -43,11 +45,13 @@ fn get_meta_property(document: &Html, property: &str) -> Option<String> {
 }
 
 /// Helper to extract meta content by name attribute.
-fn get_meta_name(document: &Html, name: &str) -> Option<String> {
+fn get_meta_name(document: &Document, name: &str) -> Option<String> {
     let sel_str = format!("meta[name='{}']", name);
-    let sel = Selector::parse(&sel_str).ok()?;
-    let elem = document.select(&sel).next()?;
-    let content = elem.value().attr("content")?;
+    let elem = document.select(&sel_str);
+    if elem.length() == 0 {
+        return None;
+    }
+    let content = elem.attr("content")?;
     let trimmed = content.trim();
     if trimmed.is_empty() {
         None
@@ -57,7 +61,7 @@ fn get_meta_name(document: &Html, name: &str) -> Option<String> {
 }
 
 /// Helper to extract meta content by property first, then name as fallback.
-fn get_meta(document: &Html, property: &str, name: &str) -> Option<String> {
+fn get_meta(document: &Document, property: &str, name: &str) -> Option<String> {
     if !property.is_empty() {
         if let Some(val) = get_meta_property(document, property) {
             return Some(val);
@@ -88,7 +92,7 @@ pub fn extract_metadata_only(html: &str, base_url: &str) -> Result<Metadata, Par
         )
     })?;
 
-    let document = Html::parse_document(html);
+    let document = Document::from(html);
     let mut meta = Metadata::default();
 
     // Helper to resolve relative URLs
@@ -104,12 +108,9 @@ pub fn extract_metadata_only(html: &str, base_url: &str) -> Result<Metadata, Par
 
     // Title: og:title > meta[name=title] > <title>
     meta.title = get_meta(&document, "og:title", "title").unwrap_or_else(|| {
-        if let Ok(sel) = Selector::parse("title") {
-            document
-                .select(&sel)
-                .next()
-                .map(|e| e.text().collect::<String>().trim().to_string())
-                .unwrap_or_default()
+        let sel = document.select("title");
+        if sel.length() > 0 {
+            sel.text().to_string().trim().to_string()
         } else {
             String::new()
         }
@@ -126,12 +127,10 @@ pub fn extract_metadata_only(html: &str, base_url: &str) -> Result<Metadata, Par
 
     // URL: og:url > canonical link
     meta.url = get_meta(&document, "og:url", "").unwrap_or_else(|| {
-        if let Ok(sel) = Selector::parse("link[rel='canonical']") {
-            document
-                .select(&sel)
-                .next()
-                .and_then(|e| e.value().attr("href"))
-                .map(|h| resolve_url(h))
+        let sel = document.select("link[rel='canonical']");
+        if sel.length() > 0 {
+            sel.attr("href")
+                .map(|h| resolve_url(&h))
                 .unwrap_or_default()
         } else {
             String::new()
@@ -156,14 +155,13 @@ pub fn extract_metadata_only(html: &str, base_url: &str) -> Result<Metadata, Par
         "link[rel='apple-touch-icon']",
     ];
     for sel_str in &icon_selectors {
-        if let Ok(sel) = Selector::parse(sel_str) {
-            if let Some(elem) = document.select(&sel).next() {
-                if let Some(href) = elem.value().attr("href") {
-                    let resolved = resolve_url(href);
-                    if !resolved.is_empty() {
-                        meta.icon_url = resolved;
-                        break;
-                    }
+        let elem = document.select(sel_str);
+        if elem.length() > 0 {
+            if let Some(href) = elem.attr("href") {
+                let resolved = resolve_url(&href);
+                if !resolved.is_empty() {
+                    meta.icon_url = resolved;
+                    break;
                 }
             }
         }
@@ -173,14 +171,13 @@ pub fn extract_metadata_only(html: &str, base_url: &str) -> Result<Metadata, Par
     meta.theme_color = get_meta(&document, "", "theme-color").unwrap_or_default();
 
     // Language: html[lang] > og:locale > meta[name=language]
-    if let Ok(sel) = Selector::parse("html") {
-        if let Some(html_elem) = document.select(&sel).next() {
-            if let Some(lang) = html_elem.value().attr("lang") {
-                let trimmed = lang.trim();
-                if !trimmed.is_empty() {
-                    // Normalize to primary language tag (e.g., "en-US" -> "en")
-                    meta.language = trimmed.split('-').next().unwrap_or(trimmed).to_lowercase();
-                }
+    let html_elem = document.select("html");
+    if html_elem.length() > 0 {
+        if let Some(lang) = html_elem.attr("lang") {
+            let trimmed = lang.trim();
+            if !trimmed.is_empty() {
+                // Normalize to primary language tag (e.g., "en-US" -> "en")
+                meta.language = trimmed.split('-').next().unwrap_or(trimmed).to_lowercase();
             }
         }
     }

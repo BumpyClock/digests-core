@@ -15,7 +15,8 @@
 //! - Transforms apply tag renaming during serialization (not structural mutation).
 //! - `allow_multiple`: when true, returns all matches; when false, returns first only.
 
-use scraper::{CaseSensitivity, Html, Selector};
+use dom_query::{Document, Selection};
+use scraper::{Html, Selector};
 
 use crate::extractors::custom::{ContentExtractor, SelectorSpec, TransformSpec};
 
@@ -37,22 +38,18 @@ const AD_CLASS_MARKERS: &[&str] = &["ad", "ads", "advert", "sidebar", "related",
 /// or `None` if no selector yields matches.
 ///
 /// If `ce.field.allow_multiple` is false, returns only the first match.
-pub fn extract_content_html(doc: &Html, ce: &ContentExtractor) -> Option<Vec<String>> {
+pub fn extract_content_html(doc: &Document, ce: &ContentExtractor) -> Option<Vec<String>> {
     extract_content_html_opts(doc, ce, false)
 }
 
 /// Like extract_content_html, but optionally preserves tags (skips heavy cleaning) when preserve_tags=true.
 pub fn extract_content_html_opts(
-    doc: &Html,
+    doc: &Document,
     ce: &ContentExtractor,
     preserve_tags: bool,
 ) -> Option<Vec<String>> {
-    // Parse clean selectors upfront
-    let clean_selectors: Vec<Selector> = ce
-        .clean
-        .iter()
-        .filter_map(|s| Selector::parse(s).ok())
-        .collect();
+    // Store clean selectors as strings (dom_query doesn't pre-parse selectors)
+    let clean_selectors: Vec<String> = ce.clean.clone();
 
     // Determine if default cleaner should be applied:
     // true if ce.field.default_cleaner OR ce has a top-level default_cleaner flag
@@ -68,13 +65,9 @@ pub fn extract_content_html_opts(
             _ => continue,
         };
 
-        let selector = match Selector::parse(css) {
-            Ok(s) => s,
-            Err(_) => continue,
-        };
-
-        let matches: Vec<_> = doc.select(&selector).collect();
-        if matches.is_empty() {
+        // With dom_query, selectors are validated inline
+        let matches = doc.select(css);
+        if matches.length() == 0 {
             continue;
         }
 
@@ -84,9 +77,13 @@ pub fn extract_content_html_opts(
         // like ".duet--article--article-body-component" may match multiple elements
         // that together form the complete article.
         let mut results = Vec::new();
-        for element in &matches {
-            let inner = extract_inner_html_filtered(
-                element,
+        for element in matches.iter() {
+            // Get inner HTML from the element
+            let inner_html = element.inner_html();
+
+            // Apply filtering and transforms
+            let inner = apply_filters_and_transforms(
+                &inner_html,
                 &clean_selectors,
                 &ce.transforms,
                 use_default_cleaner,
@@ -104,21 +101,21 @@ pub fn extract_content_html_opts(
 }
 
 /// Convenience function that returns only the first extracted HTML string.
-pub fn extract_content_first_html(doc: &Html, ce: &ContentExtractor) -> Option<String> {
+pub fn extract_content_first_html(doc: &Document, ce: &ContentExtractor) -> Option<String> {
     extract_content_html(doc, ce).and_then(|v| v.into_iter().next())
 }
 
 /// Extract raw inner_html (no cleaning, no transforms) using the first matching selector.
-pub fn extract_content_raw_first_html(doc: &Html, ce: &ContentExtractor) -> Option<String> {
+pub fn extract_content_raw_first_html(doc: &Document, ce: &ContentExtractor) -> Option<String> {
     for spec in &ce.field.selectors {
         let css = match spec {
             SelectorSpec::Css(s) => s,
             SelectorSpec::CssAttr(parts) if !parts.is_empty() => &parts[0],
             _ => continue,
         };
-        let selector = Selector::parse(css).ok()?;
-        if let Some(el) = doc.select(&selector).next() {
-            return Some(el.inner_html());
+        let sel = doc.select(css);
+        if sel.length() > 0 {
+            return Some(sel.inner_html().to_string());
         }
     }
     None
@@ -129,30 +126,30 @@ pub fn extract_content_raw_first_html(doc: &Html, ce: &ContentExtractor) -> Opti
 /// present in the Go extractor corpus (e.g., Verge/Vox noscript imgs, Reddit role=img,
 /// LA Times trb_ar_la, National Geographic lead images, Gawker/Deadspin YouTube iframes).
 pub fn apply_domain_function_transforms(domain: &str, html: &str) -> String {
-    let fragment = Html::parse_fragment(html);
-    let mut replacements: std::collections::HashMap<ego_tree::NodeId, String> =
+    let doc = Document::from(html);
+    let mut replacements: std::collections::HashMap<dom_query::NodeId, String> =
         std::collections::HashMap::new();
 
     // Domain-specific transform registry
-    let mut rules: Vec<(String, fn(&scraper::ElementRef) -> Option<String>)> = Vec::new();
+    let mut rules: Vec<(String, fn(&Selection) -> Option<String>)> = Vec::new();
 
     match domain {
         "www.reddit.com" => {
             rules.push((
                 r#"div[role="img"]"#.into(),
-                reddit_role_img_transform as fn(&scraper::ElementRef) -> Option<String>,
+                reddit_role_img_transform as fn(&Selection) -> Option<String>,
             ));
         }
         "www.latimes.com" => {
             rules.push((
                 ".trb_ar_la".into(),
-                latimes_trb_ar_la_transform as fn(&scraper::ElementRef) -> Option<String>,
+                latimes_trb_ar_la_transform as fn(&Selection) -> Option<String>,
             ));
         }
         "www.nationalgeographic.com" => {
             rules.push((
                 ".parsys.content".into(),
-                natgeo_parsys_transform as fn(&scraper::ElementRef) -> Option<String>,
+                natgeo_parsys_transform as fn(&Selection) -> Option<String>,
             ));
         }
         // Gawker/Kinja network lazy YouTube
@@ -172,20 +169,20 @@ pub fn apply_domain_function_transforms(domain: &str, html: &str) -> String {
         | "theinventory.com" => {
             rules.push((
                 "iframe".into(),
-                gawker_youtube_transform as fn(&scraper::ElementRef) -> Option<String>,
+                gawker_youtube_transform as fn(&Selection) -> Option<String>,
             ));
         }
         // Generic YouTube lazy iframe
         "www.youtube.com" | "youtu.be" => {
             rules.push((
                 "iframe".into(),
-                youtube_iframe_transform as fn(&scraper::ElementRef) -> Option<String>,
+                youtube_iframe_transform as fn(&Selection) -> Option<String>,
             ));
         }
         "deadline.com" => {
             rules.push((
                 ".embed-twitter".into(),
-                embed_twitter_blockquote as fn(&scraper::ElementRef) -> Option<String>,
+                embed_twitter_blockquote as fn(&Selection) -> Option<String>,
             ));
         }
         "www.apartmenttherapy.com" => {
@@ -204,7 +201,7 @@ pub fn apply_domain_function_transforms(domain: &str, html: &str) -> String {
             ));
             rules.push((
                 ".media__video--thumbnail".into(),
-                cnn_video_thumb as fn(&scraper::ElementRef) -> Option<String>,
+                cnn_video_thumb as fn(&Selection) -> Option<String>,
             ));
         }
         "www.abendblatt.de" => {
@@ -291,10 +288,11 @@ pub fn apply_domain_function_transforms(domain: &str, html: &str) -> String {
     }
 
     for (selector_str, func) in rules {
-        if let Ok(sel) = Selector::parse(&selector_str) {
-            for el in fragment.select(&sel) {
-                if let Some(repl) = func(&el) {
-                    replacements.insert(el.id(), repl);
+        let selections = doc.select(&selector_str);
+        for el in selections.iter() {
+            if let Some(repl) = func(&el) {
+                if let Some(node) = el.nodes().first() {
+                    replacements.insert(node.id, repl);
                 }
             }
         }
@@ -304,65 +302,34 @@ pub fn apply_domain_function_transforms(domain: &str, html: &str) -> String {
         return html.to_string();
     }
 
-    let mut output = String::new();
-    for child in fragment.root_element().children() {
-        serialize_node_with_replacements(child, &replacements, &mut output);
-    }
-    output
+    // Serialize with replacements
+    serialize_doc_with_replacements(&doc, &replacements)
 }
 
-fn serialize_node_with_replacements(
-    node: ego_tree::NodeRef<scraper::Node>,
-    replacements: &std::collections::HashMap<ego_tree::NodeId, String>,
-    out: &mut String,
-) {
-    if let Some(rep) = replacements.get(&node.id()) {
-        out.push_str(rep);
-        return;
-    }
-    match node.value() {
-        scraper::Node::Text(t) => out.push_str(&**t),
-        scraper::Node::Comment(c) => {
-            out.push_str("<!--");
-            out.push_str(&**c);
-            out.push_str("-->");
+fn serialize_doc_with_replacements(
+    doc: &Document,
+    replacements: &std::collections::HashMap<dom_query::NodeId, String>,
+) -> String {
+    // For dom_query, we'll apply replacements by modifying the document
+    // Since dom_query supports mutation, we can replace nodes directly
+    for (node_id, replacement_html) in replacements {
+        // Find the node by ID and replace it
+        if let Some(node) = doc.tree.get(node_id) {
+            let sel = Selection::from(node);
+            sel.replace_with_html(replacement_html.clone());
         }
-        scraper::Node::Element(el) => {
-            let name = el.name();
-            out.push('<');
-            out.push_str(name);
-            for (k, v) in el.attrs() {
-                out.push(' ');
-                out.push_str(k);
-                out.push_str("=\"");
-                out.push_str(&escape_attr(v));
-                out.push('"');
-            }
-            if is_void_element(name) {
-                out.push_str(" />");
-                return;
-            }
-            out.push('>');
-            for child in node.children() {
-                serialize_node_with_replacements(child, replacements, out);
-            }
-            out.push_str("</");
-            out.push_str(name);
-            out.push('>');
-        }
-        _ => {}
     }
+    doc.html().to_string()
 }
 
 // --- domain transform helpers ---
 
-fn reddit_role_img_transform(el: &scraper::ElementRef) -> Option<String> {
+fn reddit_role_img_transform(el: &Selection) -> Option<String> {
     let src = el
-        .value()
         .attr("data-url")
         .map(|s| s.to_string())
         .or_else(|| {
-            el.value().attr("style").and_then(|style| {
+            el.attr("style").and_then(|style| {
                 // extract url(...) from style
                 style
                     .split("url(")
@@ -371,25 +338,25 @@ fn reddit_role_img_transform(el: &scraper::ElementRef) -> Option<String> {
                     .map(|s| s.trim_matches(&['\'', '"'][..]).to_string())
             })
         })?;
-    let alt = el.value().attr("aria-label").unwrap_or("");
-    Some(format!("<img src=\"{}\" alt=\"{}\" />", escape_attr(&src), escape_attr(alt)))
+    let alt = el.attr("aria-label").unwrap_or_default();
+    Some(format!("<img src=\"{}\" alt=\"{}\" />", escape_attr(&src), escape_attr(&alt)))
 }
 
-fn youtube_iframe_transform(el: &scraper::ElementRef) -> Option<String> {
-    let src_attr = el.value().attr("src");
-    if let Some(_src) = src_attr {
+fn youtube_iframe_transform(el: &Selection) -> Option<String> {
+    let src_attr = el.attr("src");
+    if src_attr.is_some() {
         return None; // already has src
     }
-    if let Some(dsrc) = el.value().attr("data-src") {
-        return Some(build_element_with_attr(el, "src", dsrc));
+    if let Some(dsrc) = el.attr("data-src") {
+        return Some(build_element_with_attr(el, "src", &dsrc));
     }
-    if let Some(rec) = el.value().attr("data-recommend-id") {
+    if let Some(rec) = el.attr("data-recommend-id") {
         if let Some(id) = rec.strip_prefix("youtube://") {
             let url = format!("https://www.youtube.com/embed/{}", id);
             return Some(build_element_with_attr(el, "src", &url));
         }
     }
-    if let Some(id) = el.value().attr("id") {
+    if let Some(id) = el.attr("id") {
         if let Some(rest) = id.strip_prefix("youtube-") {
             let url = format!("https://www.youtube.com/embed/{}", rest);
             return Some(build_element_with_attr(el, "src", &url));
@@ -398,40 +365,54 @@ fn youtube_iframe_transform(el: &scraper::ElementRef) -> Option<String> {
     None
 }
 
-fn gawker_youtube_transform(el: &scraper::ElementRef) -> Option<String> {
+fn gawker_youtube_transform(el: &Selection) -> Option<String> {
     // same as youtube_iframe_transform but also handles data-recommend-id
     youtube_iframe_transform(el)
 }
 
-fn cnn_video_thumb(el: &scraper::ElementRef) -> Option<String> {
+fn cnn_video_thumb(el: &Selection) -> Option<String> {
     // turn thumbnail into figure with img
-    if let Some(img) = el.select(&Selector::parse("img").ok()?).next() {
-        let src = img.value().attr("src").unwrap_or("");
+    let img_sel = el.select("img");
+    if img_sel.length() > 0 {
+        let src = img_sel.attr("src").unwrap_or_default();
         if !src.is_empty() {
-            return Some(format!(r#"<figure class="media__video--thumbnail"><img src="{}"/></figure>"#, escape_attr(src)));
+            return Some(format!(r#"<figure class="media__video--thumbnail"><img src="{}"/></figure>"#, escape_attr(&src)));
         }
     }
     None
 }
 
-fn embed_twitter_blockquote(el: &scraper::ElementRef) -> Option<String> {
+fn embed_twitter_blockquote(el: &Selection) -> Option<String> {
     // Preserve inner HTML; wrap in blockquote.twitter-tweet if not already
     let inner = el.inner_html();
-    if el.value().name().eq_ignore_ascii_case("blockquote") {
+    if el.is("blockquote") {
         return Some(format!(r#"<blockquote class="twitter-tweet">{}</blockquote>"#, inner));
     }
     Some(format!(r#"<blockquote class="twitter-tweet">{}</blockquote>"#, inner))
 }
 
-fn img_data_src_to_src(el: &scraper::ElementRef) -> Option<String> {
+fn img_data_src_to_src(el: &Selection) -> Option<String> {
     // Copy data-src/srcset onto img
-    let mut attrs: Vec<(String, String)> =
-        el.value().attrs().map(|(k, v)| (k.to_string(), v.to_string())).collect();
+    let mut attrs: Vec<(String, String)> = el.nodes().first()
+        .map(|node| {
+            node.attrs()
+                .iter()
+                .map(|attr| (attr.name.local.to_string(), attr.value.to_string()))
+                .collect()
+        })
+        .unwrap_or_default();
+
     fix_lazy_img_attrs(&mut attrs);
+
+    // Get tag name
+    let tag_name = el.nodes().first()
+        .and_then(|n| n.node_name())
+        .unwrap_or_default();
+
     // Serialize back
     let mut out = String::new();
     out.push('<');
-    out.push_str(el.value().name());
+    out.push_str(&tag_name);
     for (k, v) in attrs {
         out.push(' ');
         out.push_str(&k);
@@ -443,7 +424,7 @@ fn img_data_src_to_src(el: &scraper::ElementRef) -> Option<String> {
     Some(out)
 }
 
-fn wrap_tag_fn(new_tag: &str) -> fn(&scraper::ElementRef) -> Option<String> {
+fn wrap_tag_fn(new_tag: &str) -> fn(&Selection) -> Option<String> {
     match new_tag {
         "h4" => wrap_tag_h4,
         "figcaption" => wrap_tag_figcaption,
@@ -460,7 +441,7 @@ fn wrap_tag_fn(new_tag: &str) -> fn(&scraper::ElementRef) -> Option<String> {
 
 macro_rules! make_wrap_fn {
     ($fname:ident, $tag:literal) => {
-        fn $fname(el: &scraper::ElementRef) -> Option<String> {
+        fn $fname(el: &Selection) -> Option<String> {
             Some(wrap_tag(el, $tag))
         }
     };
@@ -476,22 +457,27 @@ make_wrap_fn!(wrap_tag_h1, "h1");
 make_wrap_fn!(wrap_tag_span, "span");
 make_wrap_fn!(wrap_tag_div, "div");
 
-fn wrap_tag(el: &scraper::ElementRef, new_tag: &str) -> String {
+fn wrap_tag(el: &Selection, new_tag: &str) -> String {
     let mut out = String::new();
     out.push('<');
     out.push_str(new_tag);
-    for (k, v) in el.value().attrs() {
-        out.push(' ');
-        out.push_str(k);
-        out.push_str("=\"");
-        out.push_str(&escape_attr(v));
-        out.push('"');
+
+    // Get attributes from the node
+    if let Some(node) = el.nodes().first() {
+        for attr in node.attrs().iter() {
+            out.push(' ');
+            out.push_str(&attr.name.local);
+            out.push_str("=\"");
+            out.push_str(&escape_attr(&attr.value));
+            out.push('"');
+        }
     }
+
     if is_void_element(new_tag) {
         out.push_str(" />");
     } else {
         out.push('>');
-        out.push_str(&el.inner_html());
+        out.push_str(&el.inner_html().to_string());
         out.push_str("</");
         out.push_str(new_tag);
         out.push('>');
@@ -499,39 +485,31 @@ fn wrap_tag(el: &scraper::ElementRef, new_tag: &str) -> String {
     out
 }
 
-fn latimes_trb_ar_la_transform(el: &scraper::ElementRef) -> Option<String> {
-    let figure_sel = Selector::parse("figure").ok()?;
-    if let Some(fig) = el.select(&figure_sel).next() {
-        let inner = fig.inner_html();
+fn latimes_trb_ar_la_transform(el: &Selection) -> Option<String> {
+    let figure_sel = el.select("figure");
+    if figure_sel.length() > 0 {
+        let inner = figure_sel.inner_html();
         return Some(format!("<figure>{}</figure>", inner));
     }
     None
 }
 
-fn natgeo_parsys_transform(el: &scraper::ElementRef) -> Option<String> {
+fn natgeo_parsys_transform(el: &Selection) -> Option<String> {
     // Try imageGroup with data-platform-image1-path / image2
-    if el
-        .children()
-        .next()
-            .and_then(scraper::ElementRef::wrap)
-            .map_or(false, |c| {
-                c.value()
-                    .has_class("imageGroup", CaseSensitivity::AsciiCaseInsensitive)
-            })
-    {
-        if let Some(first_child) = el.children().next().and_then(scraper::ElementRef::wrap) {
-            if let Some(data_container) = first_child
-                .select(&Selector::parse(".media--medium__container").ok()?)
-                .next()
-                .and_then(|c| c.children().next().and_then(scraper::ElementRef::wrap))
-            {
-                let img1 = data_container.value().attr("data-platform-image1-path").unwrap_or("");
-                let img2 = data_container.value().attr("data-platform-image2-path").unwrap_or("");
+    let children = el.children();
+    if children.length() > 0 {
+        let first_child = children.first();
+        if first_child.has_class("imageGroup") {
+            let container = first_child.select(".media--medium__container");
+            if container.length() > 0 {
+                let data_container = container.children().first();
+                let img1 = data_container.attr("data-platform-image1-path").unwrap_or_default();
+                let img2 = data_container.attr("data-platform-image2-path").unwrap_or_default();
                 if !img1.is_empty() && !img2.is_empty() {
                     let lead = format!(
                         r#"<div class="__image-lead__"><img src="{}"/><img src="{}"/></div>"#,
-                        escape_attr(img1),
-                        escape_attr(img2)
+                        escape_attr(&img1),
+                        escape_attr(&img2)
                     );
                     return Some(wrap_with_same_tag(el, &format!("{}{}", lead, el.inner_html())));
                 }
@@ -540,63 +518,78 @@ fn natgeo_parsys_transform(el: &scraper::ElementRef) -> Option<String> {
     }
 
     // Fallback: find picturefill data-platform-src
-    if let Some(src) = el
-        .select(&Selector::parse(".image.parbase.section .picturefill").ok()?)
-        .next()
-        .and_then(|p| p.value().attr("data-platform-src"))
-    {
-        let lead = format!(
-            r#"<img class="__image-lead__" src="{}"/>"#,
-            escape_attr(src)
-        );
-        return Some(wrap_with_same_tag(el, &format!("{}{}", lead, el.inner_html())));
+    let picturefill = el.select(".image.parbase.section .picturefill");
+    if picturefill.length() > 0 {
+        if let Some(src) = picturefill.attr("data-platform-src") {
+            let lead = format!(
+                r#"<img class="__image-lead__" src="{}"/>"#,
+                escape_attr(&src)
+            );
+            return Some(wrap_with_same_tag(el, &format!("{}{}", lead, el.inner_html())));
+        }
     }
 
     None
 }
 
-fn wrap_with_same_tag(el: &scraper::ElementRef, inner: &str) -> String {
-    let name = el.value().name();
+fn wrap_with_same_tag(el: &Selection, inner: &str) -> String {
+    let name = el.nodes().first()
+        .and_then(|n| n.node_name())
+        .unwrap_or_default();
+
     let mut out = String::new();
     out.push('<');
-    out.push_str(name);
-    for (k, v) in el.value().attrs() {
-        out.push(' ');
-        out.push_str(k);
-        out.push_str("=\"");
-        out.push_str(&escape_attr(v));
-        out.push('"');
+    out.push_str(&name);
+
+    if let Some(node) = el.nodes().first() {
+        for attr in node.attrs().iter() {
+            out.push(' ');
+            out.push_str(&attr.name.local);
+            out.push_str("=\"");
+            out.push_str(&escape_attr(&attr.value));
+            out.push('"');
+        }
     }
+
     out.push('>');
     out.push_str(inner);
     out.push_str("</");
-    out.push_str(name);
+    out.push_str(&name);
     out.push('>');
     out
 }
 
-fn unwrap_keep_children_fn(el: &scraper::ElementRef) -> Option<String> {
+fn unwrap_keep_children_fn(el: &Selection) -> Option<String> {
     // return inner HTML (unwrap the element)
-    Some(el.inner_html())
+    Some(el.inner_html().to_string())
 }
 
-fn build_element_with_attr(el: &scraper::ElementRef, attr: &str, value: &str) -> String {
-    let name = el.value().name();
+fn build_element_with_attr(el: &Selection, attr: &str, value: &str) -> String {
+    let name = el.nodes().first()
+        .and_then(|n| n.node_name())
+        .unwrap_or_default();
+
     let mut out = String::new();
     out.push('<');
-    out.push_str(name);
+    out.push_str(&name);
     let mut wrote = false;
-    for (k, v) in el.value().attrs() {
-        let write_val = if k == attr { value } else { v };
-        out.push(' ');
-        out.push_str(k);
-        out.push_str("=\"");
-        out.push_str(&escape_attr(write_val));
-        out.push('"');
-        if k == attr {
-            wrote = true;
+
+    if let Some(node) = el.nodes().first() {
+        for a in node.attrs().iter() {
+            let k = &a.name.local;
+            let v = &a.value;
+            let write_val = if k == attr { value } else { v };
+            out.push(' ');
+            out.push_str(k);
+            out.push_str("=\"");
+            out.push_str(&escape_attr(write_val));
+            out.push('"');
+            if k == attr {
+                wrote = true;
+            }
         }
     }
+
     if !wrote {
         out.push(' ');
         out.push_str(attr);
@@ -604,13 +597,13 @@ fn build_element_with_attr(el: &scraper::ElementRef, attr: &str, value: &str) ->
         out.push_str(&escape_attr(value));
         out.push('"');
     }
-    if is_void_element(name) {
+    if is_void_element(&name) {
         out.push_str(" />");
     } else {
         out.push('>');
-        out.push_str(&el.inner_html());
+        out.push_str(&el.inner_html().to_string());
         out.push_str("</");
-        out.push_str(name);
+        out.push_str(&name);
         out.push('>');
     }
     out
@@ -660,153 +653,97 @@ fn fix_lazy_source_attrs(attrs: &mut Vec<(String, String)>) {
 ///
 /// Returns the cleaned HTML as a string.
 fn apply_default_clean(html: &str) -> String {
-    let fragment = Html::parse_fragment(html);
-    serialize_with_cleaning(&fragment)
-}
+    let doc = Document::from(html);
 
-/// Serializes an HTML fragment with default cleaning applied.
-///
-/// Handles:
-/// - drops script/style/noscript/nav/header/footer/aside/form/iframe
-/// - drops elements with ad-related class markers
-/// - collapses consecutive <br>
-/// - removes empty paragraphs
-fn serialize_with_cleaning(fragment: &Html) -> String {
-    let mut output = String::new();
-    let mut last_was_br = false;
-
-    for child in fragment.root_element().children() {
-        serialize_node_with_cleaning(child, &mut output, &mut last_was_br);
+    // 1. Remove elements matching standard cleanup selectors
+    for selector in DEFAULT_CLEAN_SELECTORS {
+        doc.select(selector).remove();
     }
 
-    output
-}
-
-/// Recursively serializes a node with cleaning rules applied.
-fn serialize_node_with_cleaning(
-    node: ego_tree::NodeRef<scraper::Node>,
-    output: &mut String,
-    last_was_br: &mut bool,
-) {
-    match node.value() {
-        scraper::Node::Text(text) => {
-            output.push_str(&**text);
-            *last_was_br = false;
+    // 2. Remove elements with ad-related class markers
+    for el in doc.select("*").iter() {
+        if let Some(class_attr) = el.attr("class") {
+            let class_lower = class_attr.to_lowercase();
+            if AD_CLASS_MARKERS.iter().any(|marker| class_lower.contains(marker)) {
+                el.remove();
+            }
         }
-        scraper::Node::Element(el) => {
-            let tag_name = el.name();
-            let tag_lower = tag_name.to_lowercase();
+    }
 
-            // Drop default clean tags
-            if DEFAULT_CLEAN_SELECTORS
-                .iter()
-                .any(|t| tag_lower == *t)
-            {
-                return;
-            }
-
-            // Drop ad-related class markers
-            if let Some(class_attr) = el.attr("class") {
-                let class_lower = class_attr.to_lowercase();
-                if AD_CLASS_MARKERS
-                    .iter()
-                    .any(|marker| class_lower.contains(marker))
-                {
-                    return;
-                }
-            }
-
-            // Step 3: Collapse consecutive <br> tags
-            if tag_lower == "br" {
-                if *last_was_br {
-                    // Skip consecutive br
-                    return;
-                }
-                *last_was_br = true;
-                output.push_str("<br />");
-                return;
-            }
-
-            // Step 4: Remove empty paragraphs (no text content, no img children)
-            if tag_lower == "p" && is_empty_paragraph(&node) {
-                return;
-            }
-
-            *last_was_br = false;
-
-            // Open tag
-            output.push('<');
-            output.push_str(tag_name);
-
-            // Attributes
-            for (name, value) in el.attrs() {
-                output.push(' ');
-                output.push_str(name);
-                output.push_str("=\"");
-                output.push_str(&escape_attr(value));
-                output.push('"');
-            }
-
-            // Check for void elements
-            if is_void_element(tag_name) {
-                output.push_str(" />");
+    // 3. Collapse consecutive <br> tags
+    let brs: Vec<_> = doc.select("br").iter().collect();
+    for br in brs {
+        // Check if next sibling is also a br
+        let mut current_next = br.next_sibling();
+        while current_next.length() > 0 {
+            if current_next.is("br") {
+                current_next.remove();
+                current_next = br.next_sibling();
             } else {
-                output.push('>');
-
-                // Children
-                for child in node.children() {
-                    serialize_node_with_cleaning(child, output, last_was_br);
-                }
-
-                // Close tag
-                output.push_str("</");
-                output.push_str(tag_name);
-                output.push('>');
-            }
-        }
-        scraper::Node::Comment(comment) => {
-            output.push_str("<!--");
-            output.push_str(&**comment);
-            output.push_str("-->");
-            *last_was_br = false;
-        }
-        _ => {}
-    }
-}
-
-/// Checks if a paragraph element is empty (no text content and no img children).
-fn is_empty_paragraph(node: &ego_tree::NodeRef<scraper::Node>) -> bool {
-    for descendant in node.descendants() {
-        match descendant.value() {
-            scraper::Node::Text(text) => {
-                if !text.trim().is_empty() {
-                    return false;
+                // Check if it's whitespace-only text
+                let text = current_next.text();
+                if text.trim().is_empty() && current_next.nodes().first().map(|n| n.is_text()).unwrap_or(false) {
+                    current_next = current_next.next_sibling();
+                } else {
+                    break;
                 }
             }
-            scraper::Node::Element(el) => {
-                if el.name().eq_ignore_ascii_case("img") {
-                    return false;
-                }
-            }
-            _ => {}
         }
     }
-    true
+
+    // 4. Remove empty paragraphs
+    let paragraphs: Vec<_> = doc.select("p").iter().collect();
+    for p in paragraphs {
+        let text = p.text();
+        let has_img = p.select("img").length() > 0;
+        if text.trim().is_empty() && !has_img {
+            p.remove();
+        }
+    }
+
+    doc.html().to_string()
 }
 
-/// Extracts inner HTML from an element, optionally applying default cleaning,
-/// filtering out nodes matching clean selectors, and applying transforms.
+/// Applies filters and transforms to HTML string.
 ///
-/// Transform application order: transforms -> default_cleaner -> clean selectors -> post_cleaners
-fn extract_inner_html_filtered(
-    element: &scraper::ElementRef,
+/// This is a wrapper around the legacy extract_inner_html_filtered that works with HTML strings
+/// instead of requiring a scraper::ElementRef.
+fn apply_filters_and_transforms(
+    inner_html: &str,
+    clean_selectors: &[String],
+    transforms: &std::collections::HashMap<String, TransformSpec>,
+    use_default_cleaner: bool,
+    preserve_tags: bool,
+) -> String {
+    // Fast path: if no transforms, no cleaners, and default_cleaner is off, return as-is (post cleaners only)
+    if !use_default_cleaner && clean_selectors.is_empty() && transforms.is_empty() {
+        return apply_post_cleaners(inner_html);
+    }
+
+    // For now, parse selectors and delegate to the old function
+    // TODO: Fully migrate this to dom_query
+    let parsed_selectors: Vec<Selector> = clean_selectors
+        .iter()
+        .filter_map(|s| Selector::parse(s).ok())
+        .collect();
+
+    apply_filters_and_transforms_legacy(
+        inner_html,
+        &parsed_selectors,
+        transforms,
+        use_default_cleaner,
+        preserve_tags,
+    )
+}
+
+/// Legacy implementation that works with parsed Selectors
+fn apply_filters_and_transforms_legacy(
+    inner_html: &str,
     clean_selectors: &[Selector],
     transforms: &std::collections::HashMap<String, TransformSpec>,
     use_default_cleaner: bool,
     preserve_tags: bool,
 ) -> String {
-    // Get the inner HTML as a string
-    let inner_html = element.inner_html();
 
     // Fast path: if no transforms, no cleaners, and default_cleaner is off, return as-is (post cleaners only)
     if !use_default_cleaner && clean_selectors.is_empty() && transforms.is_empty() {
@@ -841,7 +778,7 @@ fn extract_inner_html_filtered(
 
     // Apply transforms first (before cleaning)
     let transformed_html = if transforms.is_empty() {
-        inner_html
+        inner_html.to_string()
     } else {
         apply_transforms(&inner_html, transforms)
     };
@@ -850,7 +787,7 @@ fn extract_inner_html_filtered(
     let cleaned_html = if use_default_cleaner {
         apply_default_clean(&transformed_html)
     } else {
-        transformed_html
+        transformed_html.clone()
     };
 
     // Re-parse to apply clean selectors
@@ -1493,7 +1430,7 @@ mod tests {
     #[test]
     fn extract_content_single() {
         let html = r#"<html><body><article><p>Hi</p></article></body></html>"#;
-        let doc = Html::parse_document(html);
+        let doc = Document::from(html);
 
         let ce = ContentExtractor {
             field: FieldExtractor {
@@ -1518,7 +1455,7 @@ mod tests {
             <div class="entry">First</div>
             <div class="entry">Second</div>
         </body></html>"#;
-        let doc = Html::parse_document(html);
+        let doc = Document::from(html);
 
         let ce = ContentExtractor {
             field: FieldExtractor {
@@ -1542,7 +1479,7 @@ mod tests {
     fn clean_removes_nodes() {
         let html =
             r#"<html><body><article><div class="ad">AD</div><p>Hi</p></article></body></html>"#;
-        let doc = Html::parse_document(html);
+        let doc = Document::from(html);
 
         let ce = ContentExtractor {
             field: FieldExtractor {
@@ -1564,7 +1501,7 @@ mod tests {
     #[test]
     fn transform_tag_wraps_output() {
         let html = r#"<html><body><article><span>Hi</span></article></body></html>"#;
-        let doc = Html::parse_document(html);
+        let doc = Document::from(html);
 
         let mut transforms = HashMap::new();
         transforms.insert(
@@ -1604,7 +1541,7 @@ mod tests {
     fn transform_tag_wraps_nested_output() {
         // Test transform on nested elements within selected content
         let html = r#"<html><body><article><span>Hi</span></article></body></html>"#;
-        let doc = Html::parse_document(html);
+        let doc = Document::from(html);
 
         let mut transforms = HashMap::new();
         transforms.insert(
@@ -1634,7 +1571,7 @@ mod tests {
     #[test]
     fn returns_none_when_no_match() {
         let html = r#"<html><body><p>Hello</p></body></html>"#;
-        let doc = Html::parse_document(html);
+        let doc = Document::from(html);
 
         let ce = ContentExtractor {
             field: FieldExtractor {
@@ -1656,7 +1593,7 @@ mod tests {
             <div class="entry">First</div>
             <div class="entry">Second</div>
         </body></html>"#;
-        let doc = Html::parse_document(html);
+        let doc = Document::from(html);
 
         let ce = ContentExtractor {
             field: FieldExtractor {
@@ -1680,7 +1617,7 @@ mod tests {
             <div class="ads banner">Advertisement</div>
             <p>Good</p>
         </article></body></html>"#;
-        let doc = Html::parse_document(html);
+        let doc = Document::from(html);
 
         let ce = ContentExtractor {
             field: FieldExtractor {
@@ -1718,7 +1655,7 @@ mod tests {
     #[test]
     fn default_cleaner_collapses_br() {
         let html = r#"<html><body><article>Hello<br><br>World</article></body></html>"#;
-        let doc = Html::parse_document(html);
+        let doc = Document::from(html);
 
         let ce = ContentExtractor {
             field: FieldExtractor {
@@ -1747,7 +1684,7 @@ mod tests {
     #[test]
     fn default_cleaner_drops_empty_p() {
         let html = r#"<html><body><article><p></p><p>Keep</p></article></body></html>"#;
-        let doc = Html::parse_document(html);
+        let doc = Document::from(html);
 
         let ce = ContentExtractor {
             field: FieldExtractor {
@@ -1779,7 +1716,7 @@ mod tests {
     fn transform_tag_rename() {
         // Test CSS selector-based tag rename: span.old -> strong
         let html = r#"<html><body><article><span class="old">Hi</span></article></body></html>"#;
-        let doc = Html::parse_document(html);
+        let doc = Document::from(html);
 
         let mut transforms = HashMap::new();
         transforms.insert(
@@ -1827,7 +1764,7 @@ mod tests {
         // Test NoscriptToDiv transform: <noscript> -> <div>
         let html =
             r#"<html><body><article><noscript><p>Hidden</p></noscript></article></body></html>"#;
-        let doc = Html::parse_document(html);
+        let doc = Document::from(html);
 
         let mut transforms = HashMap::new();
         transforms.insert("noscript".to_string(), TransformSpec::NoscriptToDiv);
@@ -1869,7 +1806,7 @@ mod tests {
     fn transform_unwrap() {
         // Test Unwrap transform: remove element but keep children
         let html = r#"<html><body><article><div class="unwrap"><em>Text</em></div></article></body></html>"#;
-        let doc = Html::parse_document(html);
+        let doc = Document::from(html);
 
         let mut transforms = HashMap::new();
         transforms.insert("div.unwrap".to_string(), TransformSpec::Unwrap);
@@ -1906,7 +1843,7 @@ mod tests {
     fn transform_move_attr() {
         // Test MoveAttr transform: copy data-src to src
         let html = r#"<html><body><article><img data-src="a.jpg"></article></body></html>"#;
-        let doc = Html::parse_document(html);
+        let doc = Document::from(html);
 
         let mut transforms = HashMap::new();
         transforms.insert(
@@ -1950,7 +1887,7 @@ mod tests {
     fn transform_set_attr() {
         // Test SetAttr transform: set a fixed attribute value
         let html = r#"<html><body><article><a href="old.html">Link</a></article></body></html>"#;
-        let doc = Html::parse_document(html);
+        let doc = Document::from(html);
 
         let mut transforms = HashMap::new();
         transforms.insert(
@@ -1993,7 +1930,7 @@ mod tests {
     fn transform_move_attr_overwrites_existing() {
         // Test MoveAttr overwrites existing `to` attribute
         let html = r#"<html><body><article><img src="old.jpg" data-src="new.jpg"></article></body></html>"#;
-        let doc = Html::parse_document(html);
+        let doc = Document::from(html);
 
         let mut transforms = HashMap::new();
         transforms.insert(
@@ -2038,7 +1975,7 @@ mod tests {
         // Test that img with data-src gets src populated via MoveAttr transform
         let html =
             r#"<html><body><article><img data-src="lazy.jpg" alt="Lazy"></article></body></html>"#;
-        let doc = Html::parse_document(html);
+        let doc = Document::from(html);
 
         let mut transforms = HashMap::new();
         transforms.insert(
@@ -2180,7 +2117,7 @@ mod tests {
             <h1>Should Be H2</h1>
             <p><a href="#">Click</a></p>
         </article></body></html>"##;
-        let doc = Html::parse_document(html);
+        let doc = Document::from(html);
 
         let ce = ContentExtractor {
             field: FieldExtractor {
