@@ -15,18 +15,25 @@
 //! - Transforms apply tag renaming during serialization (not structural mutation).
 //! - `allow_multiple`: when true, returns all matches; when false, returns first only.
 
+use aho_corasick::AhoCorasick;
 use dom_query::{Document, Selection};
+use once_cell::sync::Lazy;
 use scraper::{Html, Selector};
 
 use crate::extractors::custom::{ContentExtractor, SelectorSpec, TransformSpec};
 
-/// Selectors for elements to remove during default cleaning.
+/// Selectors for elements that should be removed during default cleaning.
 const DEFAULT_CLEAN_SELECTORS: &[&str] = &[
     "script", "style", "noscript", "nav", "header", "footer", "aside", "form", "iframe",
 ];
 
 /// Substrings in class attributes that indicate ad-related elements.
 const AD_CLASS_MARKERS: &[&str] = &["ad", "ads", "advert", "sidebar", "related", "sponsored"];
+
+/// Aho-Corasick automaton for efficient multi-pattern matching of ad class markers.
+/// This reduces O(N×M) to O(N×L) where L is the average class attribute length.
+static AD_MATCHER: Lazy<AhoCorasick> =
+    Lazy::new(|| AhoCorasick::new(AD_CLASS_MARKERS).expect("failed to build ad matcher"));
 
 /// Extracts HTML content from a document based on a `ContentExtractor` configuration.
 ///
@@ -629,38 +636,6 @@ fn build_element_with_attr(el: &Selection, attr: &str, value: &str) -> String {
     out
 }
 
-fn fix_lazy_source_attrs(attrs: &mut Vec<(String, String)>) {
-    let mut src = None;
-    let mut srcset = None;
-    for (k, v) in attrs.iter() {
-        let kl = k.to_lowercase();
-        match kl.as_str() {
-            "src" if !v.is_empty() => src = Some(v.clone()),
-            "srcset" if !v.is_empty() => srcset = Some(v.clone()),
-            "data-src" | "data-url" if !v.is_empty() => {
-                if src.is_none() {
-                    src = Some(v.clone())
-                }
-            }
-            "data-srcset" | "data-original-set" | "data-src-set" if !v.is_empty() => {
-                if srcset.is_none() {
-                    srcset = Some(v.clone())
-                }
-            }
-            _ => {}
-        }
-    }
-    if let Some(s) = src {
-        if !attrs.iter().any(|(k, _)| k.eq_ignore_ascii_case("src")) {
-            attrs.push(("src".into(), s));
-        }
-    }
-    if let Some(s) = srcset {
-        if !attrs.iter().any(|(k, _)| k.eq_ignore_ascii_case("srcset")) {
-            attrs.push(("srcset".into(), s));
-        }
-    }
-}
 
 /// Applies default content cleaning to an HTML fragment.
 ///
@@ -679,15 +654,14 @@ fn apply_default_clean(html: &str) -> String {
         doc.select(selector).remove();
     }
 
-    // 2. Remove elements with ad-related class markers
-    for el in doc.select("*").iter() {
-        if let Some(class_attr) = el.attr("class") {
+    // 2. Remove elements with ad-related class markers (using Aho-Corasick for O(N×L) matching)
+    let elements: Vec<_> = doc.select("*").nodes().iter().cloned().collect();
+    for node in elements {
+        let sel = Selection::from(node);
+        if let Some(class_attr) = sel.attr("class") {
             let class_lower = class_attr.to_lowercase();
-            if AD_CLASS_MARKERS
-                .iter()
-                .any(|marker| class_lower.contains(marker))
-            {
-                el.remove();
+            if AD_MATCHER.is_match(&class_lower) {
+                sel.remove();
             }
         }
     }
@@ -1015,16 +989,13 @@ fn apply_default_clean_to_doc(doc: &Document) {
         doc.select(selector).remove();
     }
 
-    // Remove elements with ad-related classes (same markers as AD_CLASS_MARKERS)
+    // Remove elements with ad-related classes (using Aho-Corasick for O(N×L) matching)
     let elements: Vec<_> = doc.select("*").nodes().iter().cloned().collect();
     for node in elements {
         let sel = Selection::from(node);
         if let Some(class) = sel.attr("class") {
             let class_lower = class.to_lowercase();
-            if AD_CLASS_MARKERS
-                .iter()
-                .any(|marker| class_lower.contains(marker))
-            {
+            if AD_MATCHER.is_match(&class_lower) {
                 sel.remove();
             }
         }

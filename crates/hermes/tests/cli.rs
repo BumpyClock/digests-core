@@ -62,6 +62,7 @@ fn multiple_urls_outputs_lines() {
 
     let output = hermes_cmd()
         .arg("--allow-private-networks")
+        .arg("--json")
         .arg(&url1)
         .arg(&url2)
         .assert()
@@ -129,6 +130,7 @@ fn output_to_file() {
         .arg(&html_path)
         .arg("--url")
         .arg("https://example.com")
+        .arg("--json")
         .arg("-o")
         .arg(&output_path)
         .assert()

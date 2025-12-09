@@ -88,21 +88,28 @@ pub fn should_remove_header(sel: &Selection, title: &str, has_preceding_paragrap
 }
 
 pub fn process_h1_tags(html: &str) -> String {
-    let doc = Document::from(html);
-    let h1_count = doc.select("h1").length();
+    let mut doc = Document::from(html);
+    process_h1_tags_inplace(&mut doc);
+    doc.html().to_string()
+}
+
+fn process_h1_tags_inplace(doc: &mut Document) {
+    let h1_nodes: Vec<_> = doc.select("h1").nodes().iter().cloned().collect();
+    let h1_count = h1_nodes.len();
 
     if h1_count == 0 {
-        return html.to_string();
+        return;
     }
 
     if h1_count < 3 {
         // Remove all h1 tags
-        doc.select("h1").remove();
+        for node in h1_nodes {
+            Selection::from(node).remove();
+        }
     } else {
         // Convert h1 tags to h2
-        let h1s = doc.select("h1");
-        for node in h1s.nodes() {
-            let sel = Selection::from(node.clone());
+        for node in h1_nodes {
+            let sel = Selection::from(node);
             let outer_html = sel.html().to_string();
             let new_html = outer_html
                 .replacen("<h1", "<h2", 1)
@@ -110,8 +117,6 @@ pub fn process_h1_tags(html: &str) -> String {
             sel.replace_with_html(new_html.as_str());
         }
     }
-
-    doc.html().to_string()
 }
 
 pub fn should_remove_image(sel: &Selection) -> bool {
@@ -382,19 +387,10 @@ fn clean_nodes_unified(doc: &mut Document, title: &str) {
 }
 
 pub fn clean_article(html: &str, title: &str) -> String {
-    let converted = {
-        let doc = Document::from(html);
-        convert_divs_to_paragraphs(&doc)
-    };
+    let mut doc = Document::from(html);
+    convert_divs_to_paragraphs_inplace(&mut doc);
+    process_h1_tags_inplace(&mut doc);
 
-    let converted_h1 = process_h1_tags(&converted);
-    let converted = if converted_h1.trim().is_empty() {
-        converted
-    } else {
-        converted_h1
-    };
-
-    let mut doc = Document::from(converted.as_str());
     let keep_selectors = build_keep_selectors(&doc);
     let keep_class_subtree = build_keep_class_map(&doc);
 
@@ -402,15 +398,19 @@ pub fn clean_article(html: &str, title: &str) -> String {
     clean_conditionally(&mut doc, &keep_selectors, &keep_class_subtree);
     clean_nodes_unified(&mut doc, title);
 
-    let cleaned = doc.html();
-    let br_fixed = crate::dom::brs::brs_to_ps(&cleaned);
-    crate::dom::brs::rewrite_top_level(&br_fixed)
+    let html = doc.html().to_string();
+    let html = crate::dom::brs::brs_to_ps(&html);
+    crate::dom::brs::rewrite_top_level(&html)
 }
 
 fn convert_divs_to_paragraphs(doc: &Document) -> String {
-    let html_str = doc.html().to_string();
-    let result = Document::from(html_str.as_str());
+    let html = doc.html();
+    let mut doc = Document::from(html.as_ref());
+    convert_divs_to_paragraphs_inplace(&mut doc);
+    doc.html().to_string()
+}
 
+fn convert_divs_to_paragraphs_inplace(doc: &mut Document) {
     let block_tags: HashSet<&str> = ["a", "blockquote", "dl", "div", "img", "p", "pre", "table"]
         .into_iter()
         .collect();
@@ -453,9 +453,7 @@ fn convert_divs_to_paragraphs(doc: &Document) -> String {
         block_tags.contains(tag_for_block) || has_block_descendant
     }
 
-    walk(result.root(), &block_tags);
-
-    result.html().to_string()
+    walk(doc.root(), &block_tags);
 }
 
 fn escape_attr(s: &str) -> String {
@@ -465,25 +463,6 @@ fn escape_attr(s: &str) -> String {
         .replace('>', "&gt;")
 }
 
-fn is_void_element(tag: &str) -> bool {
-    matches!(
-        tag.to_lowercase().as_str(),
-        "area"
-            | "base"
-            | "br"
-            | "col"
-            | "embed"
-            | "hr"
-            | "img"
-            | "input"
-            | "link"
-            | "meta"
-            | "param"
-            | "source"
-            | "track"
-            | "wbr"
-    )
-}
 
 #[cfg(test)]
 mod tests {
@@ -508,7 +487,7 @@ mod tests {
         </div>"#;
 
         let cleaned = process_h1_tags(html);
-        let doc = Document::from(cleaned.as_str());
+        let doc = Document::from(cleaned.as_ref());
 
         assert_eq!(doc.select("h1").length(), 0);
         assert_eq!(doc.select("h2").length(), 3);
