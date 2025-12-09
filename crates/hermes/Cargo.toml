@@ -21,6 +21,7 @@ chrono = { version = "0.4", features = ["serde", "clock"] }
 ammonia = "4.1.2"
 htmd = "0.5.0"
 regex = "1"
+once_cell = "1"
 chardetng = "0.1"
 encoding_rs = "0.8"
 futures = "0.3"

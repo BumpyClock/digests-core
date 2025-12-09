@@ -12,6 +12,7 @@ parse_duration = "2"
 serde = { version = "1", features = ["derive"] }
 thiserror = "2.0.17"
 quick-xml = "0.38.4"
+digests-hermes = { path = "../hermes" }
 
 [dev-dependencies]
 pretty_assertions = "1"

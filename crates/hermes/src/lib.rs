@@ -25,7 +25,10 @@ pub mod dom;
 pub mod error;
 pub mod extractors;
 pub mod formats;
+pub mod metadata_adapter;
 pub mod options;
+pub mod reader_adapter;
+pub mod reader_result;
 pub mod resource;
 pub mod result;
 
@@ -36,5 +39,8 @@ pub use crate::extractors::custom::{
     TransformSpec,
 };
 pub use crate::extractors::loader::load_builtin_registry;
+pub use crate::metadata_adapter::{extract_metadata_only, Metadata};
 pub use crate::options::{ClientBuilder, ContentType, Options};
+pub use crate::reader_adapter::extract_reader_sync;
+pub use crate::reader_result::ReaderResult;
 pub use crate::result::{ParseResult, Result};

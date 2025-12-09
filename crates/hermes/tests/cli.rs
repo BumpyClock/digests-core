@@ -2,7 +2,6 @@
 // ABOUTME: Tests HTML file parsing and multiple URL handling.
 
 use assert_cmd::assert::OutputAssertExt;
-use assert_cmd::cargo::CommandCargoExt;
 use httpmock::prelude::*;
 use predicates::prelude::*;
 use std::fs;
@@ -10,7 +9,7 @@ use std::process::Command;
 use tempfile::TempDir;
 
 fn hermes_cmd() -> Command {
-    Command::cargo_bin("hermes").unwrap()
+    Command::new(assert_cmd::cargo::cargo_bin!("hermes"))
 }
 
 #[test]

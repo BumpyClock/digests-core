@@ -7,8 +7,11 @@ use std::path::PathBuf;
 
 use anyhow::{anyhow, bail, Result};
 use clap::Parser;
-use digests_feed::parse_feed_bytes;
+use digests_feed::{apply_metadata_to_feed, enrich_items_with_metadata, parse_feed_bytes};
+use digests_hermes::extract_metadata_only;
+use reqwest::blocking::Client;
 use serde_json::json;
+use url::Url;
 
 /// Parse one or more RSS/Atom feeds and output JSON.
 #[derive(Parser, Debug)]
@@ -35,6 +38,8 @@ fn main() -> Result<()> {
         bail!("--feed-url is only valid when parsing a single target");
     }
 
+    let http_client = Client::builder().user_agent("digests-cli/0.1").build()?;
+
     let mut results = Vec::new();
 
     for target in &args.targets {
@@ -43,12 +48,29 @@ fn main() -> Result<()> {
         match load_bytes(target)
             .and_then(|bytes| parse_feed_bytes(&bytes, &feed_url).map_err(anyhow::Error::new))
         {
-            Ok(feed) => results.push(json!({
-                "feed_url": feed_url,
-                "ok": true,
-                "feed": feed,
-                "error": null
-            })),
+            Ok(mut feed) => {
+                if let Some(site_url) = pick_site_url(&feed) {
+                    if let Ok(site_html) = fetch_url(&http_client, &site_url) {
+                        if let Ok(meta) = extract_metadata_only(&site_html, &site_url) {
+                            apply_metadata_to_feed(&mut feed, &meta);
+                        }
+                    }
+                }
+
+                // Item-level metadata thumbnails (only missing ones)
+                enrich_items_with_metadata(&mut feed, |url| {
+                    fetch_url(&http_client, url)
+                        .ok()
+                        .and_then(|html| extract_metadata_only(&html, url).ok())
+                });
+
+                results.push(json!({
+                    "feed_url": feed_url,
+                    "ok": true,
+                    "feed": feed,
+                    "error": null
+                }))
+            }
             Err(err) => results.push(json!({
                 "feed_url": feed_url,
                 "ok": false,
@@ -112,4 +134,25 @@ fn load_bytes(target: &str) -> Result<Vec<u8>> {
         return Err(anyhow!("file not found: {}", target));
     }
     Ok(fs::read(path)?)
+}
+
+fn fetch_url(client: &Client, url: &str) -> Result<String> {
+    let resp = client.get(url).send()?.error_for_status()?;
+    Ok(resp.text()?)
+}
+
+fn pick_site_url(feed: &digests_feed::Feed) -> Option<String> {
+    if !feed.home_url.is_empty() {
+        Some(feed.home_url.clone())
+    } else if !feed.feed_url.is_empty() {
+        if let Ok(parsed) = Url::parse(&feed.feed_url) {
+            if let Some(host) = parsed.host_str() {
+                let base = format!("{}://{}", parsed.scheme(), host);
+                return Some(base);
+            }
+        }
+        Some(feed.feed_url.clone())
+    } else {
+        None
+    }
 }

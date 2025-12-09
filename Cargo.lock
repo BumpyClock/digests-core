@@ -578,8 +578,10 @@ dependencies = [
  "anyhow",
  "clap",
  "digests-feed",
+ "digests-hermes",
  "reqwest 0.11.27",
  "serde_json",
+ "url",
 ]
 
 [[package]]
@@ -587,6 +589,7 @@ name = "digests-feed"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "digests-hermes",
  "feed-rs",
  "parse_duration",
  "pretty_assertions",
@@ -604,7 +607,10 @@ dependencies = [
  "bumpalo",
  "chrono",
  "digests-feed",
+ "digests-hermes",
  "libc",
+ "reqwest 0.11.27",
+ "url",
 ]
 
 [[package]]
@@ -625,6 +631,7 @@ dependencies = [
  "htmd",
  "httpmock",
  "ipnet",
+ "once_cell",
  "predicates",
  "pretty_assertions",
  "regex",

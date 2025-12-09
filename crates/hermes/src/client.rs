@@ -4,6 +4,8 @@
 use chrono::{DateTime, Utc};
 use scraper::{Html, Selector};
 
+use crate::dom::cleaners::{clean_article, is_unlikely_candidate};
+use crate::dom::scoring::NON_TOP_CANDIDATE_TAGS_RE;
 use crate::error::ParseError;
 use crate::extractors::content::extract_content_first_html;
 #[cfg(test)]
@@ -56,71 +58,6 @@ fn extract_body_inner_html(doc: &Html) -> String {
     String::new()
 }
 
-/// Candidate selectors for generic content extraction, ordered by semantic priority.
-const GENERIC_CONTENT_SELECTORS: &[&str] = &[
-    "article",
-    "main",
-    "section",
-    "div[itemprop=articleBody]",
-    "div.post-content",
-    "div.entry-content",
-];
-
-/// Minimum text length required to accept a candidate element.
-const MIN_CONTENT_TEXT_LENGTH: usize = 80;
-
-/// Score a candidate element using readability-style heuristics.
-///
-/// Scoring formula:
-/// - text_len = length of plain text extracted from inner HTML
-/// - link_density = total text length inside <a> tags / text_len (0 if no text)
-/// - tag_penalty = 10 * (count of form + nav + aside descendants)
-/// - score = text_len * (1.0 - link_density) - tag_penalty
-///
-/// Returns (score, text_len) tuple.
-fn score_candidate_element(element: &scraper::ElementRef) -> (f64, usize) {
-    let inner = element.inner_html();
-    let text = html_to_text(&inner);
-    let text_len = text.len();
-
-    if text_len == 0 {
-        return (0.0, 0);
-    }
-
-    // Calculate link density: total text inside <a> tags / total text
-    let link_text_len: usize = element
-        .select(&Selector::parse("a").unwrap())
-        .map(|a| {
-            let a_text: String = a.text().collect::<Vec<_>>().join(" ");
-            a_text
-                .split_whitespace()
-                .collect::<Vec<_>>()
-                .join(" ")
-                .len()
-        })
-        .sum();
-
-    let link_density = link_text_len as f64 / text_len as f64;
-
-    // Count penalty tags: form, nav, aside
-    let penalty_count: usize = ["form", "nav", "aside"]
-        .iter()
-        .filter_map(|tag| Selector::parse(tag).ok())
-        .map(|sel| element.select(&sel).count())
-        .sum();
-
-    let tag_penalty = (penalty_count * 10) as f64;
-
-    let p_count = Selector::parse("p")
-        .ok()
-        .map(|sel| element.select(&sel).count())
-        .unwrap_or(0);
-
-    let score = (text_len as f64) * (1.0 - link_density) - tag_penalty + 20.0 * p_count as f64;
-
-    (score, text_len)
-}
-
 /// Score and select the best generic content element using readability-style heuristics.
 ///
 /// Iterates through candidate selectors and scores each element based on:
@@ -130,33 +67,43 @@ fn score_candidate_element(element: &scraper::ElementRef) -> (f64, usize) {
 ///
 /// Requires minimum text length of 80 characters to accept a candidate.
 /// Returns None if no candidates meet the threshold, triggering body fallback.
-fn score_generic_content(doc: &Html) -> Option<String> {
-    let mut best_html: Option<String> = None;
-    let mut best_score: f64 = f64::NEG_INFINITY;
+fn score_generic_content(doc: &Html, title: &str) -> Option<String> {
+    use crate::dom::scoring::{merge_siblings, score_content};
 
-    for &selector_str in GENERIC_CONTENT_SELECTORS {
-        let selector = match Selector::parse(selector_str) {
-            Ok(s) => s,
-            Err(_) => continue,
-        };
+    let scores = score_content(doc, true);
 
-        for element in doc.select(&selector) {
-            let (score, text_len) = score_candidate_element(&element);
-
-            // Require minimum text length
-            if text_len < MIN_CONTENT_TEXT_LENGTH {
-                continue;
-            }
-
-            // Keep first encountered in DOM order when scores are equal (> not >=)
-            if score > best_score {
-                best_score = score;
-                best_html = Some(element.inner_html());
+    // Find best candidate skipping unlikely / non-top tags
+    let mut best: Option<scraper::ElementRef> = None;
+    let mut best_score = i32::MIN;
+    let selector = Selector::parse("*").unwrap();
+    for el in doc.select(&selector) {
+        let tag = el.value().name().to_lowercase();
+        if tag == "body" || tag == "html" || NON_TOP_CANDIDATE_TAGS_RE.is_match(&tag) {
+            continue;
+        }
+        if is_unlikely_candidate(&el) {
+            continue;
+        }
+        if let Some(s) = scores.get(&el.id()) {
+            let density = crate::dom::scoring::link_density(&el);
+            let effective = (*s as f64 - (density * 100.0)) as i32;
+            if effective > best_score {
+                best_score = effective;
+                best = Some(el);
             }
         }
     }
 
-    best_html
+    let candidate = best.or_else(|| {
+        if let Ok(sel) = Selector::parse("body") {
+            doc.select(&sel).next()
+        } else {
+            None
+        }
+    })?;
+
+    let merged = merge_siblings(candidate, best_score, &scores);
+    Some(clean_article(&merged, title))
 }
 
 /// Generic author selectors in priority order.
@@ -190,6 +137,25 @@ fn parse_date(s: &str) -> Option<DateTime<Utc>> {
     // Fast path: RFC3339/ISO8601
     if let Ok(dt) = DateTime::parse_from_rfc3339(s) {
         return Some(dt.with_timezone(&Utc));
+    }
+
+    // Try common loose date-only formats (no timezone) before falling back to dateparser.
+    // This avoids local timezone shifts (e.g., converting midnight local to UTC and changing the day).
+    const LOOSE_PATTERNS: &[&str] = &[
+        "%b %e, %Y", // Jan 5, 2024
+        "%e %b %Y",  // 5 Jan 2024
+        "%b %d, %Y", // Jan 05, 2024
+        "%d %b %Y",  // 05 Jan 2024
+        "%B %e, %Y", // January 5, 2024
+        "%e %B %Y",  // 5 January 2024
+        "%B %d, %Y", // January 05, 2024
+        "%d %B %Y",  // 05 January 2024
+    ];
+    for pat in LOOSE_PATTERNS {
+        if let Ok(date) = chrono::NaiveDate::parse_from_str(s.trim(), pat) {
+            let naive_dt = date.and_hms_opt(0, 0, 0)?;
+            return Some(DateTime::<Utc>::from_naive_utc_and_offset(naive_dt, Utc));
+        }
     }
 
     // Fall back to dateparser for natural/loose formats
@@ -706,7 +672,7 @@ impl Client {
         let mut content_html = custom_extractor
             .and_then(|ce| ce.content.as_ref())
             .and_then(|ce| extract_content_first_html(&doc, ce))
-            .or_else(|| score_generic_content(&doc))
+            .or_else(|| score_generic_content(&doc, &title))
             .unwrap_or_else(|| extract_body_inner_html(&doc));
 
         // Fallback: if content is too short, try JSON-LD articleBody
@@ -799,7 +765,7 @@ impl Client {
                                 let mut next_content_html = next_custom_extractor
                                     .and_then(|ce| ce.content.as_ref())
                                     .and_then(|ce| extract_content_first_html(&next_doc, ce))
-                                    .or_else(|| score_generic_content(&next_doc))
+                                    .or_else(|| score_generic_content(&next_doc, &title))
                                     .unwrap_or_else(|| extract_body_inner_html(&next_doc));
 
                                 // JSON-LD fallback for next page
@@ -952,7 +918,7 @@ impl Client {
         let mut content_html = custom_extractor
             .and_then(|ce| ce.content.as_ref())
             .and_then(|ce| extract_content_first_html(&doc, ce))
-            .or_else(|| score_generic_content(&doc))
+            .or_else(|| score_generic_content(&doc, &title))
             .unwrap_or_else(|| extract_body_inner_html(&doc));
 
         // Fallback: if content is too short, try JSON-LD articleBody
