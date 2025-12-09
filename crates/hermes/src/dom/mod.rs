@@ -16,6 +16,7 @@ pub use cleaners::{
     should_remove_header, should_remove_image, clean_article,
 };
 pub use scoring::{
-    extract_best_content, find_top_candidate, get_node_id, get_tag_name, get_weight,
-    has_sentence_end, link_density, merge_siblings, normalize_spaces, score_content,
+    compute_text_metrics, extract_best_content, find_top_candidate, get_node_id, get_tag_name,
+    get_weight, has_sentence_end, link_density, link_density_cached, merge_siblings,
+    normalize_spaces, score_content, NodeTextMetrics, TextMetricsMap,
 };

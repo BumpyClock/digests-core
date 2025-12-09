@@ -99,7 +99,11 @@ fn score_generic_content(raw_html: &str, title: &str) -> Option<String> {
     // Parse and score
     let doc = Document::from(br_fixed.as_str());
     let scores = crate::dom::score_content(&doc, true);
-    let candidate = crate::dom::find_top_candidate(&doc, &scores)?;
+
+    // Pre-compute text metrics for O(1) link density lookups
+    let text_metrics = crate::dom::compute_text_metrics(&doc);
+
+    let candidate = crate::dom::find_top_candidate(&doc, &scores, &text_metrics)?;
     let top_score = crate::dom::get_node_id(&candidate)
         .and_then(|id| scores.get(&id).copied())
         .unwrap_or(0);
@@ -117,7 +121,7 @@ fn score_generic_content(raw_html: &str, title: &str) -> Option<String> {
         );
     }
 
-    let merged = crate::dom::merge_siblings(candidate, top_score, &scores);
+    let merged = crate::dom::merge_siblings(candidate, top_score, &scores, &text_metrics);
 
     // Clean merged content (includes div->p, unlikely stripping, conditional cleaning, br->p, top-level rewrite)
     let cleaned = crate::dom::clean_article(&merged, title);

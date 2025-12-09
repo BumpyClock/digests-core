@@ -1,7 +1,7 @@
 // ABOUTME: Go-compatible readability scoring for content extraction.
 // ABOUTME: Ports ScoreContent, FindTopCandidate, MergeSiblings from Go hermes.
 
-use dom_query::{Document, NodeId, Selection};
+use dom_query::{Document, NodeId, NodeRef, Selection};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::HashMap;
@@ -38,6 +38,30 @@ const HNEWS_CONTENT_SELECTORS: &[(&str, &str)] = &[
 
 /// Score storage using NodeId as key
 pub type NodeScores = HashMap<NodeId, i32>;
+
+/// Pre-computed text metrics for O(1) link_density lookup
+#[derive(Debug, Clone, Default)]
+pub struct NodeTextMetrics {
+    /// Total text length in this node's subtree (includes all descendants)
+    pub total_text_len: usize,
+    /// Text length inside <a> tags in this node's subtree
+    pub link_text_len: usize,
+}
+
+impl NodeTextMetrics {
+    /// Calculate link density from pre-computed metrics
+    #[inline]
+    pub fn link_density(&self) -> f64 {
+        if self.total_text_len == 0 {
+            0.0
+        } else {
+            self.link_text_len as f64 / self.total_text_len as f64
+        }
+    }
+}
+
+/// Storage for all node text metrics
+pub type TextMetricsMap = HashMap<NodeId, NodeTextMetrics>;
 
 /// Helper: get a score from the map for a node
 fn get_score_for(node_id: NodeId, scores: &NodeScores) -> i32 {
@@ -208,6 +232,103 @@ pub fn link_density_dq(sel: &Selection) -> f64 {
     link_density(sel)
 }
 
+/// Compute text metrics for all nodes in a single O(N) post-order traversal.
+/// Returns a map from NodeId to NodeTextMetrics for O(1) link_density lookups.
+pub fn compute_text_metrics(doc: &Document) -> TextMetricsMap {
+    let mut metrics = TextMetricsMap::new();
+
+    // Start from html to cover the entire document tree, fall back to body
+    let root = doc
+        .select("html")
+        .nodes()
+        .first()
+        .cloned()
+        .or_else(|| doc.select("body").nodes().first().cloned());
+
+    if let Some(root_node) = root {
+        compute_metrics_recursive(&root_node, &mut metrics, false);
+    }
+
+    metrics
+}
+
+/// Recursive post-order traversal to compute text metrics.
+/// The `in_ancestor_anchor` flag indicates if any ancestor is an <a> element.
+/// This matches the semantics of the original `link_density` function which looks
+/// for <a> elements among descendants, not the element itself.
+fn compute_metrics_recursive(
+    node: &NodeRef,
+    metrics: &mut TextMetricsMap,
+    in_ancestor_anchor: bool,
+) -> NodeTextMetrics {
+    let is_anchor = node
+        .node_name()
+        .map(|n| n.eq_ignore_ascii_case("a"))
+        .unwrap_or(false);
+
+    let mut this_metrics = NodeTextMetrics::default();
+
+    // Process children - they inherit the anchor context
+    // If THIS node is an anchor, children are "inside an ancestor anchor"
+    let children_in_anchor = in_ancestor_anchor || is_anchor;
+
+    for child in node.children_it(false) {
+        if child.is_text() {
+            // Text node: measure and attribute
+            // Only mark as link text if inside an ANCESTOR anchor (not self)
+            let text_len = child.text().len();
+            this_metrics.total_text_len += text_len;
+            if children_in_anchor {
+                // This text is inside an anchor (either this node or an ancestor)
+                // For the PARENT's metrics, we need to track link text
+                // But for THIS node's metrics, only count if ancestor is anchor
+                if in_ancestor_anchor {
+                    this_metrics.link_text_len += text_len;
+                }
+            }
+        } else if child.is_element() {
+            // Skip script/style - they don't contain visible text
+            let name = child.node_name().unwrap_or_default();
+            if name.eq_ignore_ascii_case("script") || name.eq_ignore_ascii_case("style") {
+                continue;
+            }
+
+            // Recurse with updated anchor context
+            let child_metrics = compute_metrics_recursive(&child, metrics, children_in_anchor);
+            this_metrics.total_text_len += child_metrics.total_text_len;
+
+            // Child metrics already include link_text from ancestor anchors
+            // Add link text based on whether the CHILD is inside an anchor
+            if child
+                .node_name()
+                .map(|n| n.eq_ignore_ascii_case("a"))
+                .unwrap_or(false)
+            {
+                // This child IS an anchor - its total_text is link text for US
+                this_metrics.link_text_len += child_metrics.total_text_len;
+            } else {
+                // Child is not an anchor - use its computed link_text
+                this_metrics.link_text_len += child_metrics.link_text_len;
+            }
+        }
+        // Skip comments, doctypes, processing instructions, etc.
+    }
+
+    // Store metrics for this node
+    metrics.insert(node.id, this_metrics.clone());
+
+    this_metrics
+}
+
+/// O(1) link density lookup using pre-computed metrics.
+/// Falls back to 0.0 if node not found in metrics map.
+pub fn link_density_cached(selection: &Selection, metrics: &TextMetricsMap) -> f64 {
+    get_node_id(selection)
+        .and_then(|id| metrics.get(&id))
+        .map(|m| m.link_density())
+        .unwrap_or(0.0)
+}
+
 /// Check if text ends with sentence-ending punctuation
 pub fn has_sentence_end(text: &str) -> bool {
     let text = text.trim();
@@ -360,7 +481,11 @@ pub fn score_content(doc: &Document, weight_nodes: bool) -> NodeScores {
 }
 
 /// Find the top scoring candidate element
-pub fn find_top_candidate<'a>(doc: &'a Document, scores: &NodeScores) -> Option<Selection<'a>> {
+pub fn find_top_candidate<'a>(
+    doc: &'a Document,
+    scores: &NodeScores,
+    text_metrics: &TextMetricsMap,
+) -> Option<Selection<'a>> {
     let mut best_candidate: Option<Selection<'a>> = None;
     let mut top_score = 0i32;
 
@@ -390,7 +515,8 @@ pub fn find_top_candidate<'a>(doc: &'a Document, scores: &NodeScores) -> Option<
             }
 
             // Penalize very link-heavy candidates (aligns with digests-api heuristic)
-            let density = link_density(&element);
+            // Uses O(1) cached lookup instead of O(N) subtree traversal
+            let density = link_density_cached(&element, text_metrics);
             let adjusted_score = if density > 0.5 {
                 ((score as f64) * (1.0 - density)).round() as i32
             } else {
@@ -417,7 +543,12 @@ pub fn find_top_candidate<'a>(doc: &'a Document, scores: &NodeScores) -> Option<
 
 /// Merge siblings that may be part of the main content
 /// Returns the HTML of the merged content (wrapping div when siblings qualify)
-pub fn merge_siblings(candidate: Selection, top_score: i32, scores: &NodeScores) -> String {
+pub fn merge_siblings(
+    candidate: Selection,
+    top_score: i32,
+    scores: &NodeScores,
+    text_metrics: &TextMetricsMap,
+) -> String {
     // If no parent, return candidate's HTML
     let parent = match get_parent(&candidate) {
         Some(p) => p,
@@ -456,8 +587,9 @@ pub fn merge_siblings(candidate: Selection, top_score: i32, scores: &NodeScores)
 
         if sibling_score > 0 {
             // Calculate content bonus
+            // Uses O(1) cached lookup instead of O(N) subtree traversal
             let mut content_bonus = 0i32;
-            let density = link_density(&child);
+            let density = link_density_cached(&child, text_metrics);
 
             if density < 0.05 {
                 content_bonus += 20;
@@ -547,8 +679,11 @@ pub fn extract_best_content(doc: &Document) -> Option<String> {
     // Score all content
     let scores = score_content(doc, true);
 
+    // Pre-compute text metrics for O(1) link density lookups
+    let text_metrics = compute_text_metrics(doc);
+
     // Find top candidate
-    let candidate = find_top_candidate(doc, &scores)?;
+    let candidate = find_top_candidate(doc, &scores, &text_metrics)?;
 
     // Get top score for merge threshold calculation
     let top_score = get_node_id(&candidate)
@@ -556,7 +691,7 @@ pub fn extract_best_content(doc: &Document) -> Option<String> {
         .unwrap_or(0);
 
     // Merge siblings and return content
-    Some(merge_siblings(candidate, top_score, &scores))
+    Some(merge_siblings(candidate, top_score, &scores, &text_metrics))
 }
 
 #[cfg(test)]
@@ -658,8 +793,9 @@ mod tests {
         "#;
         let doc = Document::from(html);
         let scores = NodeScores::new(); // force attribute-based scoring
+        let text_metrics = compute_text_metrics(&doc);
 
-        let candidate = find_top_candidate(&doc, &scores).expect("candidate");
+        let candidate = find_top_candidate(&doc, &scores, &text_metrics).expect("candidate");
         let tag = get_tag_name(&candidate);
         assert_eq!(tag, "div");
         let text = normalize_spaces(&candidate.text());
@@ -676,8 +812,9 @@ mod tests {
         "#;
         let doc = Document::from(html);
         let scores = NodeScores::new();
+        let text_metrics = compute_text_metrics(&doc);
 
-        let candidate = find_top_candidate(&doc, &scores).expect("candidate");
+        let candidate = find_top_candidate(&doc, &scores, &text_metrics).expect("candidate");
         assert_eq!(get_tag_name(&candidate), "div");
         assert_eq!(
             normalize_spaces(&candidate.text()),
@@ -690,8 +827,9 @@ mod tests {
         let html = "<html><body><div>No scores</div></body></html>";
         let doc = Document::from(html);
         let scores = NodeScores::new();
+        let text_metrics = compute_text_metrics(&doc);
 
-        let candidate = find_top_candidate(&doc, &scores).expect("fallback body");
+        let candidate = find_top_candidate(&doc, &scores, &text_metrics).expect("fallback body");
         assert_eq!(get_tag_name(&candidate), "body");
     }
 
@@ -706,6 +844,7 @@ mod tests {
         let doc = Document::from(html);
         let candidate = doc.select(".candidate").first();
         let sibling = doc.select(".sibling").first();
+        let text_metrics = compute_text_metrics(&doc);
 
         let mut scores = NodeScores::new();
         if let Some(cand_id) = get_node_id(&candidate) {
@@ -715,7 +854,7 @@ mod tests {
             scores.insert(sib_id, 20);
         }
 
-        let merged = merge_siblings(candidate, 50, &scores);
+        let merged = merge_siblings(candidate, 50, &scores, &text_metrics);
         assert!(merged.starts_with("<div>"));
         assert!(merged.contains("Main content with text"));
         assert!(merged.contains("Sibling paragraph"));
@@ -734,6 +873,7 @@ mod tests {
         let doc = Document::from(html);
         let cand = doc.select(".candidate").first();
         let valid = doc.select(".valid").first();
+        let text_metrics = compute_text_metrics(&doc);
 
         let mut scores = NodeScores::new();
         if let Some(cand_id) = get_node_id(&cand) {
@@ -743,7 +883,7 @@ mod tests {
             scores.insert(valid_id, 20);
         }
 
-        let merged = merge_siblings(cand, 50, &scores);
+        let merged = merge_siblings(cand, 50, &scores, &text_metrics);
         assert!(merged.contains("Main content"));
         assert!(merged.contains("Valid sibling"));
         assert!(!merged.contains("<br"));
@@ -764,15 +904,60 @@ mod tests {
 
         let doc = Document::from(html);
         let cand = doc.select(".candidate").first();
+        let text_metrics = compute_text_metrics(&doc);
         let mut scores = NodeScores::new();
         if let Some(cand_id) = get_node_id(&cand) {
             scores.insert(cand_id, 50);
         }
 
-        let merged = merge_siblings(cand, 50, &scores);
+        let merged = merge_siblings(cand, 50, &scores, &text_metrics);
 
         assert!(merged.contains("long paragraph"));
         assert!(merged.contains("Short sentence."));
         assert!(!merged.contains("short-link"));
+    }
+
+    #[test]
+    fn test_compute_text_metrics_basic() {
+        let html = r##"<html><body><div>Hello <a href="#">World</a>!</div></body></html>"##;
+        let doc = Document::from(html);
+        let metrics = compute_text_metrics(&doc);
+
+        let div = doc.select("div").first();
+        let div_id = get_node_id(&div).expect("div should have id");
+        let m = metrics.get(&div_id).expect("div should have metrics");
+
+        // "Hello World!" = 12 chars total, "World" = 5 chars link
+        assert_eq!(m.total_text_len, 12);
+        assert_eq!(m.link_text_len, 5);
+        assert!((m.link_density() - 5.0 / 12.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_link_density_cached_matches_link_density() {
+        let html = r##"
+            <html><body>
+                <div class="content">
+                    <p>Regular paragraph text without any links.</p>
+                    <p>Paragraph with <a href="#">one link</a> inside.</p>
+                    <div><a href="#">All links</a></div>
+                </div>
+            </body></html>
+        "##;
+        let doc = Document::from(html);
+        let metrics = compute_text_metrics(&doc);
+
+        // Compare cached vs direct link_density for all elements
+        for element in doc.select("*").iter() {
+            let direct = link_density(&element);
+            let cached = link_density_cached(&element, &metrics);
+            assert!(
+                (direct - cached).abs() < 0.001,
+                "Mismatch for {:?}: direct={}, cached={}",
+                get_tag_name(&element),
+                direct,
+                cached
+            );
+        }
     }
 }
