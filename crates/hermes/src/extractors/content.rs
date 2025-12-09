@@ -15,7 +15,7 @@
 //! - Transforms apply tag renaming during serialization (not structural mutation).
 //! - `allow_multiple`: when true, returns all matches; when false, returns first only.
 
-use scraper::{Html, Selector};
+use scraper::{CaseSensitivity, Html, Selector};
 
 use crate::extractors::custom::{ContentExtractor, SelectorSpec, TransformSpec};
 
@@ -98,6 +98,326 @@ pub fn extract_content_first_html(doc: &Html, ce: &ContentExtractor) -> Option<S
     extract_content_html(doc, ce).and_then(|v| v.into_iter().next())
 }
 
+/// Apply domain-specific function-like transforms (ported from Go FunctionTransform)
+/// to an HTML fragment. This is a minimal set covering the noop transforms
+/// present in the Go extractor corpus (e.g., Verge/Vox noscript imgs, Reddit role=img,
+/// LA Times trb_ar_la, National Geographic lead images, Gawker/Deadspin YouTube iframes).
+pub fn apply_domain_function_transforms(domain: &str, html: &str) -> String {
+    let fragment = Html::parse_fragment(html);
+    let mut replacements: std::collections::HashMap<ego_tree::NodeId, String> =
+        std::collections::HashMap::new();
+
+    // Domain-specific transform registry
+    let mut rules: Vec<(String, fn(&scraper::ElementRef) -> Option<String>)> = Vec::new();
+
+    match domain {
+        "www.reddit.com" => {
+            rules.push((
+                r#"div[role="img"]"#.into(),
+                reddit_role_img_transform as fn(&scraper::ElementRef) -> Option<String>,
+            ));
+        }
+        "www.latimes.com" => {
+            rules.push((
+                ".trb_ar_la".into(),
+                latimes_trb_ar_la_transform as fn(&scraper::ElementRef) -> Option<String>,
+            ));
+        }
+        "www.nationalgeographic.com" => {
+            rules.push((
+                ".parsys.content".into(),
+                natgeo_parsys_transform as fn(&scraper::ElementRef) -> Option<String>,
+            ));
+        }
+        // Gawker/Kinja network lazy YouTube
+        "deadspin.com"
+        | "jezebel.com"
+        | "lifehacker.com"
+        | "kotaku.com"
+        | "gizmodo.com"
+        | "jalopnik.com"
+        | "kinja.com"
+        | "avclub.com"
+        | "clickhole.com"
+        | "splinternews.com"
+        | "theonion.com"
+        | "theroot.com"
+        | "thetakeout.com"
+        | "theinventory.com" => {
+            rules.push((
+                "iframe".into(),
+                gawker_youtube_transform as fn(&scraper::ElementRef) -> Option<String>,
+            ));
+        }
+        // Generic YouTube lazy iframe
+        "www.youtube.com" | "youtu.be" => {
+            rules.push((
+                "iframe".into(),
+                youtube_iframe_transform as fn(&scraper::ElementRef) -> Option<String>,
+            ));
+        }
+        _ => {}
+    }
+
+    for (selector_str, func) in rules {
+        if let Ok(sel) = Selector::parse(&selector_str) {
+            for el in fragment.select(&sel) {
+                if let Some(repl) = func(&el) {
+                    replacements.insert(el.id(), repl);
+                }
+            }
+        }
+    }
+
+    if replacements.is_empty() {
+        return html.to_string();
+    }
+
+    let mut output = String::new();
+    for child in fragment.root_element().children() {
+        serialize_node_with_replacements(child, &replacements, &mut output);
+    }
+    output
+}
+
+fn serialize_node_with_replacements(
+    node: ego_tree::NodeRef<scraper::Node>,
+    replacements: &std::collections::HashMap<ego_tree::NodeId, String>,
+    out: &mut String,
+) {
+    if let Some(rep) = replacements.get(&node.id()) {
+        out.push_str(rep);
+        return;
+    }
+    match node.value() {
+        scraper::Node::Text(t) => out.push_str(&**t),
+        scraper::Node::Comment(c) => {
+            out.push_str("<!--");
+            out.push_str(&**c);
+            out.push_str("-->");
+        }
+        scraper::Node::Element(el) => {
+            let name = el.name();
+            out.push('<');
+            out.push_str(name);
+            for (k, v) in el.attrs() {
+                out.push(' ');
+                out.push_str(k);
+                out.push_str("=\"");
+                out.push_str(&escape_attr(v));
+                out.push('"');
+            }
+            if is_void_element(name) {
+                out.push_str(" />");
+                return;
+            }
+            out.push('>');
+            for child in node.children() {
+                serialize_node_with_replacements(child, replacements, out);
+            }
+            out.push_str("</");
+            out.push_str(name);
+            out.push('>');
+        }
+        _ => {}
+    }
+}
+
+// --- domain transform helpers ---
+
+fn reddit_role_img_transform(el: &scraper::ElementRef) -> Option<String> {
+    let src = el
+        .value()
+        .attr("data-url")
+        .map(|s| s.to_string())
+        .or_else(|| {
+            el.value().attr("style").and_then(|style| {
+                // extract url(...) from style
+                style
+                    .split("url(")
+                    .nth(1)
+                    .and_then(|rest| rest.split(')').next())
+                    .map(|s| s.trim_matches(&['\'', '"'][..]).to_string())
+            })
+        })?;
+    let alt = el.value().attr("aria-label").unwrap_or("");
+    Some(format!("<img src=\"{}\" alt=\"{}\" />", escape_attr(&src), escape_attr(alt)))
+}
+
+fn youtube_iframe_transform(el: &scraper::ElementRef) -> Option<String> {
+    let src_attr = el.value().attr("src");
+    if let Some(_src) = src_attr {
+        return None; // already has src
+    }
+    if let Some(dsrc) = el.value().attr("data-src") {
+        return Some(build_element_with_attr(el, "src", dsrc));
+    }
+    if let Some(rec) = el.value().attr("data-recommend-id") {
+        if let Some(id) = rec.strip_prefix("youtube://") {
+            let url = format!("https://www.youtube.com/embed/{}", id);
+            return Some(build_element_with_attr(el, "src", &url));
+        }
+    }
+    if let Some(id) = el.value().attr("id") {
+        if let Some(rest) = id.strip_prefix("youtube-") {
+            let url = format!("https://www.youtube.com/embed/{}", rest);
+            return Some(build_element_with_attr(el, "src", &url));
+        }
+    }
+    None
+}
+
+fn gawker_youtube_transform(el: &scraper::ElementRef) -> Option<String> {
+    // same as youtube_iframe_transform but also handles data-recommend-id
+    youtube_iframe_transform(el)
+}
+
+fn latimes_trb_ar_la_transform(el: &scraper::ElementRef) -> Option<String> {
+    let figure_sel = Selector::parse("figure").ok()?;
+    if let Some(fig) = el.select(&figure_sel).next() {
+        let inner = fig.inner_html();
+        return Some(format!("<figure>{}</figure>", inner));
+    }
+    None
+}
+
+fn natgeo_parsys_transform(el: &scraper::ElementRef) -> Option<String> {
+    // Try imageGroup with data-platform-image1-path / image2
+    if el
+        .children()
+        .next()
+            .and_then(scraper::ElementRef::wrap)
+            .map_or(false, |c| {
+                c.value()
+                    .has_class("imageGroup", CaseSensitivity::AsciiCaseInsensitive)
+            })
+    {
+        if let Some(first_child) = el.children().next().and_then(scraper::ElementRef::wrap) {
+            if let Some(data_container) = first_child
+                .select(&Selector::parse(".media--medium__container").ok()?)
+                .next()
+                .and_then(|c| c.children().next().and_then(scraper::ElementRef::wrap))
+            {
+                let img1 = data_container.value().attr("data-platform-image1-path").unwrap_or("");
+                let img2 = data_container.value().attr("data-platform-image2-path").unwrap_or("");
+                if !img1.is_empty() && !img2.is_empty() {
+                    let lead = format!(
+                        r#"<div class="__image-lead__"><img src="{}"/><img src="{}"/></div>"#,
+                        escape_attr(img1),
+                        escape_attr(img2)
+                    );
+                    return Some(wrap_with_same_tag(el, &format!("{}{}", lead, el.inner_html())));
+                }
+            }
+        }
+    }
+
+    // Fallback: find picturefill data-platform-src
+    if let Some(src) = el
+        .select(&Selector::parse(".image.parbase.section .picturefill").ok()?)
+        .next()
+        .and_then(|p| p.value().attr("data-platform-src"))
+    {
+        let lead = format!(
+            r#"<img class="__image-lead__" src="{}"/>"#,
+            escape_attr(src)
+        );
+        return Some(wrap_with_same_tag(el, &format!("{}{}", lead, el.inner_html())));
+    }
+
+    None
+}
+
+fn wrap_with_same_tag(el: &scraper::ElementRef, inner: &str) -> String {
+    let name = el.value().name();
+    let mut out = String::new();
+    out.push('<');
+    out.push_str(name);
+    for (k, v) in el.value().attrs() {
+        out.push(' ');
+        out.push_str(k);
+        out.push_str("=\"");
+        out.push_str(&escape_attr(v));
+        out.push('"');
+    }
+    out.push('>');
+    out.push_str(inner);
+    out.push_str("</");
+    out.push_str(name);
+    out.push('>');
+    out
+}
+
+fn build_element_with_attr(el: &scraper::ElementRef, attr: &str, value: &str) -> String {
+    let name = el.value().name();
+    let mut out = String::new();
+    out.push('<');
+    out.push_str(name);
+    let mut wrote = false;
+    for (k, v) in el.value().attrs() {
+        let write_val = if k == attr { value } else { v };
+        out.push(' ');
+        out.push_str(k);
+        out.push_str("=\"");
+        out.push_str(&escape_attr(write_val));
+        out.push('"');
+        if k == attr {
+            wrote = true;
+        }
+    }
+    if !wrote {
+        out.push(' ');
+        out.push_str(attr);
+        out.push_str("=\"");
+        out.push_str(&escape_attr(value));
+        out.push('"');
+    }
+    if is_void_element(name) {
+        out.push_str(" />");
+    } else {
+        out.push('>');
+        out.push_str(&el.inner_html());
+        out.push_str("</");
+        out.push_str(name);
+        out.push('>');
+    }
+    out
+}
+
+fn fix_lazy_source_attrs(attrs: &mut Vec<(String, String)>) {
+    let mut src = None;
+    let mut srcset = None;
+    for (k, v) in attrs.iter() {
+        let kl = k.to_lowercase();
+        match kl.as_str() {
+            "src" if !v.is_empty() => src = Some(v.clone()),
+            "srcset" if !v.is_empty() => srcset = Some(v.clone()),
+            "data-src" | "data-url" if !v.is_empty() => {
+                if src.is_none() {
+                    src = Some(v.clone())
+                }
+            }
+            "data-srcset" | "data-original-set" | "data-src-set" if !v.is_empty() => {
+                if srcset.is_none() {
+                    srcset = Some(v.clone())
+                }
+            }
+            _ => {}
+        }
+    }
+    if let Some(s) = src {
+        if !attrs.iter().any(|(k, _)| k.eq_ignore_ascii_case("src")) {
+            attrs.push(("src".into(), s));
+        }
+    }
+    if let Some(s) = srcset {
+        if !attrs.iter().any(|(k, _)| k.eq_ignore_ascii_case("srcset")) {
+            attrs.push(("srcset".into(), s));
+        }
+    }
+}
+
+
 /// Applies default content cleaning to an HTML fragment.
 ///
 /// Performs the following cleaning steps:
@@ -109,48 +429,22 @@ pub fn extract_content_first_html(doc: &Html, ce: &ContentExtractor) -> Option<S
 /// Returns the cleaned HTML as a string.
 fn apply_default_clean(html: &str) -> String {
     let fragment = Html::parse_fragment(html);
-    let mut skip_ids = std::collections::HashSet::new();
-
-    // Step 1: Remove elements matching default clean selectors
-    for &sel_str in DEFAULT_CLEAN_SELECTORS {
-        if let Ok(selector) = Selector::parse(sel_str) {
-            for matched in fragment.select(&selector) {
-                collect_node_ids(matched, &mut skip_ids);
-            }
-        }
-    }
-
-    // Step 2: Remove elements with ad-related classes
-    if let Ok(selector) = Selector::parse("[class]") {
-        for el in fragment.select(&selector) {
-            if let Some(class_attr) = el.value().attr("class") {
-                let class_lower = class_attr.to_lowercase();
-                if AD_CLASS_MARKERS
-                    .iter()
-                    .any(|marker| class_lower.contains(marker))
-                {
-                    collect_node_ids(el, &mut skip_ids);
-                }
-            }
-        }
-    }
-
-    // Step 3 & 4: Handle br collapsing and empty paragraph removal during serialization
-    serialize_with_cleaning(&fragment, &skip_ids)
+    serialize_with_cleaning(&fragment)
 }
 
 /// Serializes an HTML fragment with default cleaning applied.
 ///
-/// Handles br collapsing and empty paragraph removal during serialization.
-fn serialize_with_cleaning(
-    fragment: &Html,
-    skip_ids: &std::collections::HashSet<ego_tree::NodeId>,
-) -> String {
+/// Handles:
+/// - drops script/style/noscript/nav/header/footer/aside/form/iframe
+/// - drops elements with ad-related class markers
+/// - collapses consecutive <br>
+/// - removes empty paragraphs
+fn serialize_with_cleaning(fragment: &Html) -> String {
     let mut output = String::new();
     let mut last_was_br = false;
 
     for child in fragment.root_element().children() {
-        serialize_node_with_cleaning(child, skip_ids, &mut output, &mut last_was_br);
+        serialize_node_with_cleaning(child, &mut output, &mut last_was_br);
     }
 
     output
@@ -159,14 +453,9 @@ fn serialize_with_cleaning(
 /// Recursively serializes a node with cleaning rules applied.
 fn serialize_node_with_cleaning(
     node: ego_tree::NodeRef<scraper::Node>,
-    skip_ids: &std::collections::HashSet<ego_tree::NodeId>,
     output: &mut String,
     last_was_br: &mut bool,
 ) {
-    if skip_ids.contains(&node.id()) {
-        return;
-    }
-
     match node.value() {
         scraper::Node::Text(text) => {
             output.push_str(&**text);
@@ -175,6 +464,25 @@ fn serialize_node_with_cleaning(
         scraper::Node::Element(el) => {
             let tag_name = el.name();
             let tag_lower = tag_name.to_lowercase();
+
+            // Drop default clean tags
+            if DEFAULT_CLEAN_SELECTORS
+                .iter()
+                .any(|t| tag_lower == *t)
+            {
+                return;
+            }
+
+            // Drop ad-related class markers
+            if let Some(class_attr) = el.attr("class") {
+                let class_lower = class_attr.to_lowercase();
+                if AD_CLASS_MARKERS
+                    .iter()
+                    .any(|marker| class_lower.contains(marker))
+                {
+                    return;
+                }
+            }
 
             // Step 3: Collapse consecutive <br> tags
             if tag_lower == "br" {
@@ -215,7 +523,7 @@ fn serialize_node_with_cleaning(
 
                 // Children
                 for child in node.children() {
-                    serialize_node_with_cleaning(child, skip_ids, output, last_was_br);
+                    serialize_node_with_cleaning(child, output, last_was_br);
                 }
 
                 // Close tag
@@ -349,6 +657,7 @@ fn serialize_node_with_transforms(
         scraper::Node::Element(el) => {
             let node_id = node.id();
             let tag_name = el.name();
+            let tag_lower = tag_name.to_lowercase();
 
             // Check if this node should be unwrapped (remove element, keep children)
             if unwrap_ids.contains(&node_id) {
@@ -360,11 +669,42 @@ fn serialize_node_with_transforms(
 
             // Determine effective tag name and attribute modifications
             let transform = node_transforms.get(&node_id);
+
+            // Special-case Go FunctionTransform behavior: if noscript contains a single img,
+            // replace it with a span wrapping that img (The Verge / Vox pattern).
+            if tag_lower == "noscript" {
+                let mut element_children = node.children().filter_map(scraper::ElementRef::wrap);
+                if let Some(first_child) = element_children.next() {
+                    if element_children.next().is_none()
+                        && first_child.value().name().eq_ignore_ascii_case("img")
+                    {
+                        output.push_str("<span>");
+                        // serialize the img child normally (with transforms/lazy fixes)
+                        for gc in first_child.children() {
+                            serialize_node_with_transforms(gc, node_transforms, unwrap_ids, output);
+                        }
+                        output.push_str("</span>");
+                        return;
+                    }
+                }
+            }
+
             let effective_tag = match transform {
                 Some(TransformSpec::Tag { value }) => value.as_str(),
                 Some(TransformSpec::NoscriptToDiv) => "div",
                 _ => tag_name,
             };
+
+            // If transform is Unwrap, we already returned above; if Noscript, change tag name; additionally,
+            // default noscript handling: surface lazy content by converting to div even without explicit transform.
+            if tag_lower == "noscript" && !matches!(transform, Some(TransformSpec::Tag { .. })) {
+                output.push_str("<div>");
+                for child in node.children() {
+                    serialize_node_with_transforms(child, node_transforms, unwrap_ids, output);
+                }
+                output.push_str("</div>");
+                return;
+            }
 
             // Collect attributes, applying MoveAttr and SetAttr transforms
             let mut attrs: Vec<(String, String)> = el
@@ -408,6 +748,13 @@ fn serialize_node_with_transforms(
                     }
                     _ => {}
                 }
+            }
+
+            // Generic lazy-load fixes
+            if tag_lower == "img" {
+                fix_lazy_img_attrs(&mut attrs);
+            } else if tag_lower == "a" {
+                fix_lazy_anchor_attrs(&mut attrs);
             }
 
             // Open tag
@@ -497,25 +844,42 @@ fn serialize_node(
         }
         scraper::Node::Element(el) => {
             let tag_name = el.name();
+            let tag_lower = tag_name.to_lowercase();
 
-            // Check if there's a transform for this tag
-            let effective_tag = if let Some(TransformSpec::Tag { value }) = transforms.get(tag_name)
-            {
+            // Apply tag transform
+            let mut effective_tag = if let Some(TransformSpec::Tag { value }) = transforms.get(tag_name) {
                 value.as_str()
             } else {
                 tag_name
             };
+
+            // Default noscript handling if no explicit transform: turn into div
+            if tag_lower == "noscript" {
+                effective_tag = "div";
+            }
+
+            // Collect attrs so we can apply lazy fixes
+            let mut attrs: Vec<(String, String)> =
+                el.attrs().map(|(k, v)| (k.to_string(), v.to_string())).collect();
+
+            if tag_lower == "img" {
+                fix_lazy_img_attrs(&mut attrs);
+            } else if tag_lower == "source" {
+                fix_lazy_source_attrs(&mut attrs);
+            } else if tag_lower == "a" {
+                fix_lazy_anchor_attrs(&mut attrs);
+            }
 
             // Open tag
             output.push('<');
             output.push_str(effective_tag);
 
             // Attributes
-            for (name, value) in el.attrs() {
+            for (name, value) in attrs {
                 output.push(' ');
-                output.push_str(name);
+                output.push_str(&name);
                 output.push_str("=\"");
-                output.push_str(&escape_attr(value));
+                output.push_str(&escape_attr(&value));
                 output.push('"');
             }
 
@@ -574,6 +938,62 @@ fn is_void_element(tag: &str) -> bool {
             | "track"
             | "wbr"
     )
+}
+
+// Generic lazy image attribute fixer similar to Go FunctionTransforms
+fn fix_lazy_img_attrs(attrs: &mut Vec<(String, String)>) {
+    let mut src = None;
+    let mut srcset = None;
+    for (k, v) in attrs.iter() {
+        let kl = k.to_lowercase();
+        match kl.as_str() {
+            "src" if !v.is_empty() => src = Some(v.clone()),
+            "srcset" if !v.is_empty() => srcset = Some(v.clone()),
+            "data-src" | "data-original" | "data-lazy" | "data-lazy-src" | "data-zoom" | "data-zoom-src" | "data-href" | "data-url" if !v.is_empty() => {
+                if src.is_none() {
+                    src = Some(v.clone())
+                }
+            }
+            "data-srcset" | "data-original-set" | "data-src-set" if !v.is_empty() => {
+                if srcset.is_none() {
+                    srcset = Some(v.clone())
+                }
+            }
+            _ => {}
+        }
+    }
+
+    if let Some(s) = src {
+        if !attrs.iter().any(|(k, _)| k.eq_ignore_ascii_case("src")) {
+            attrs.push(("src".into(), s));
+        }
+    }
+    if let Some(s) = srcset {
+        if !attrs.iter().any(|(k, _)| k.eq_ignore_ascii_case("srcset")) {
+            attrs.push(("srcset".into(), s));
+        }
+    }
+}
+
+fn fix_lazy_anchor_attrs(attrs: &mut Vec<(String, String)>) {
+    let mut href = None;
+    for (k, v) in attrs.iter() {
+        let kl = k.to_lowercase();
+        if kl == "href" && !v.is_empty() {
+            href = Some(v.clone());
+            break;
+        }
+        if kl == "data-href" || kl == "data-url" {
+            if href.is_none() && !v.is_empty() {
+                href = Some(v.clone());
+            }
+        }
+    }
+    if let Some(h) = href {
+        if !attrs.iter().any(|(k, _)| k.eq_ignore_ascii_case("href")) {
+            attrs.push(("href".into(), h));
+        }
+    }
 }
 
 /// Fixes heading structure by demoting extra h1 elements to h2.

@@ -9,50 +9,39 @@
 use regex::Regex;
 use scraper::{Html, Selector};
 
-/// Sanitize HTML using ammonia with default policy.
+/// Sanitize HTML using an ammonia policy that mirrors the Go bluemonday article policy.
 ///
-/// Removes potentially dangerous elements like scripts, event handlers,
-/// and other XSS vectors while preserving safe content.
+/// Allowed elements: p, br, strong, b, em, i, u, h1-h6, ul, ol, li, blockquote, pre, code,
+/// img, a, span, div.
+/// Allowed attrs:
+/// - links: href
+/// - images: src, alt, width, height, srcset, sizes
+/// - class on div/span/p/img/a
+/// - id on headings/div/span
 pub fn sanitize_html(html: &str) -> String {
     let allowed_tags = [
-        "a",
-        "p",
-        "br",
-        "strong",
-        "em",
-        "b",
-        "i",
-        "ul",
-        "ol",
-        "li",
-        "blockquote",
-        "code",
-        "pre",
-        "img",
-        "figure",
-        "figcaption",
-        "h1",
-        "h2",
-        "h3",
-        "h4",
-        "h5",
-        "h6",
-        "div",
-        "span",
-        "hr",
+        "p", "br", "strong", "b", "em", "i", "u", "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol",
+        "li", "blockquote", "pre", "code", "img", "a", "span", "div",
     ];
 
-    let tag_set: std::collections::HashSet<&str> = allowed_tags.iter().copied().collect();
+    let mut builder = ammonia::Builder::new();
+    builder.tags(allowed_tags.iter().copied().collect());
 
-    let mut builder = ammonia::Builder::default();
+    builder.add_tag_attributes("a", &["href"]);
+    builder.add_tag_attributes("img", &["src", "alt", "width", "height", "srcset", "sizes"]);
+    builder.add_tag_attributes("div", &["class", "id"]);
+    builder.add_tag_attributes("span", &["class", "id"]);
+    builder.add_tag_attributes("p", &["class"]);
+    builder.add_tag_attributes("img", &["class"]);
+    builder.add_tag_attributes("a", &["class"]);
+    for h in &["h1", "h2", "h3", "h4", "h5", "h6"] {
+        builder.add_tag_attributes(h, &["id"]);
+    }
+
     builder
-        .tags(tag_set)
-        .add_generic_attributes(&["title"])
-        .add_tag_attributes("a", &["href", "title"])
-        .add_tag_attributes("img", &["src", "alt", "title", "width", "height"])
-        .url_schemes(["http", "https", "mailto"].iter().copied().collect());
-
-    builder.clean(html).to_string()
+        .url_schemes(["http", "https", "mailto"].iter().copied().collect())
+        .clean(html)
+        .to_string()
 }
 
 /// Preprocess HTML before conversion: replace <br> tags with newlines.

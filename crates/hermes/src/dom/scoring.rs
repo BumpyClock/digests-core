@@ -40,7 +40,7 @@ const HNEWS_CONTENT_SELECTORS: &[(&str, &str)] = &[
 /// Score storage using NodeId as key
 pub type NodeScores = HashMap<NodeId, i32>;
 
-/// Helper: get a score from the map for a node
+    /// Helper: get a score from the map for a node
 fn get_score_for(node_id: NodeId, scores: &NodeScores) -> i32 {
     *scores.get(&node_id).unwrap_or(&0)
 }
@@ -299,35 +299,44 @@ pub fn find_top_candidate<'a>(doc: &'a Html, scores: &NodeScores) -> Option<Elem
     let mut best_candidate: Option<ElementRef<'a>> = None;
     let mut top_score = 0i32;
 
-    // Find all elements with scores
+    // Find all elements with scores (from map or inline attrs)
     let all_selector = Selector::parse("*").unwrap();
     for element in doc.select(&all_selector) {
         let node_id = element.id();
 
-        if let Some(&score) = scores.get(&node_id) {
-            // Skip non-top-candidate tags
-            let tag_name = element.value().name().to_lowercase();
-            if NON_TOP_CANDIDATE_TAGS_RE.is_match(&tag_name) {
-                continue;
-            }
-            // Avoid selecting <body> as primary candidate when other options exist.
-            // We'll fall back to body later if no suitable candidate remains.
-            if tag_name == "body" {
-                continue;
-            }
+        // Prefer explicit score map, but fall back to data-content-score/score attrs
+        let raw_score = scores
+            .get(&node_id)
+            .copied()
+            .or_else(|| score_from_attrs(&element));
 
-            // Penalize very link-heavy candidates (aligns with digests-api heuristic)
-            let density = link_density(&element);
-            let adjusted_score = if density > 0.5 {
-                ((score as f64) * (1.0 - density)).round() as i32
-            } else {
-                score
-            };
+        let score = match raw_score {
+            Some(v) if v != 0 => v,
+            _ => continue,
+        };
 
-            if adjusted_score > top_score {
-                top_score = adjusted_score;
-                best_candidate = Some(element);
-            }
+        // Skip non-top-candidate tags
+        let tag_name = element.value().name().to_lowercase();
+        if NON_TOP_CANDIDATE_TAGS_RE.is_match(&tag_name) {
+            continue;
+        }
+        // Avoid selecting <body> as primary candidate when other options exist.
+        // We'll fall back to body later if no suitable candidate remains.
+        if tag_name == "body" {
+            continue;
+        }
+
+        // Penalize very link-heavy candidates (aligns with digests-api heuristic)
+        let density = link_density(&element);
+        let adjusted_score = if density > 0.5 {
+            ((score as f64) * (1.0 - density)).round() as i32
+        } else {
+            score
+        };
+
+        if adjusted_score > top_score {
+            top_score = adjusted_score;
+            best_candidate = Some(element);
         }
     }
 
@@ -370,7 +379,11 @@ pub fn merge_siblings(candidate: ElementRef, top_score: i32, scores: &NodeScores
             }
 
             let sibling_id = sibling.id();
-            let sibling_score = scores.get(&sibling_id).copied().unwrap_or(0);
+            let sibling_score = scores
+                .get(&sibling_id)
+                .copied()
+                .or_else(|| score_from_attrs(&sibling))
+                .unwrap_or(0);
 
             // Always include the candidate itself
             if sibling.id() == candidate.id() {
@@ -387,7 +400,6 @@ pub fn merge_siblings(candidate: ElementRef, top_score: i32, scores: &NodeScores
                     content_bonus += 20;
                 }
                 if density >= 0.5 {
-                    content_bonus -= 20;
                     // If it's very link-heavy, skip adding as sibling
                     continue;
                 }
@@ -439,6 +451,7 @@ pub fn merge_siblings(candidate: ElementRef, top_score: i32, scores: &NodeScores
     output
 }
 
+#[allow(dead_code)]
 fn escape_attr(s: &str) -> String {
     s.replace('&', "&amp;")
         .replace('"', "&quot;")
@@ -446,6 +459,7 @@ fn escape_attr(s: &str) -> String {
         .replace('>', "&gt;")
 }
 
+#[allow(dead_code)]
 fn is_void_element(tag: &str) -> bool {
     matches!(
         tag.to_lowercase().as_str(),
@@ -464,61 +478,6 @@ fn is_void_element(tag: &str) -> bool {
             | "track"
             | "wbr"
     )
-}
-
-fn serialize_element(element: &ElementRef, scores: &NodeScores) -> String {
-    let mut out = String::new();
-    serialize_node_with_scores(element.id(), *element, scores, &mut out);
-    out
-}
-
-fn serialize_node_with_scores(
-    node_id: NodeId,
-    node_ref: ego_tree::NodeRef<scraper::Node>,
-    scores: &NodeScores,
-    output: &mut String,
-) {
-    match node_ref.value() {
-        scraper::Node::Text(text) => output.push_str(&**text),
-        scraper::Node::Comment(comment) => {
-            output.push_str("<!--");
-            output.push_str(&**comment);
-            output.push_str("-->");
-        }
-        scraper::Node::Element(el) => {
-            let tag_name = el.name();
-            output.push('<');
-            output.push_str(tag_name);
-
-            for (name, value) in el.attrs() {
-                output.push(' ');
-                output.push_str(name);
-                output.push_str("=\"");
-                output.push_str(&escape_attr(value));
-                output.push('"');
-            }
-
-            if let Some(score) = scores.get(&node_id) {
-                output.push_str(" data-content-score=\"");
-                output.push_str(&score.to_string());
-                output.push('"');
-            }
-
-            if is_void_element(tag_name) {
-                output.push_str(" />");
-                return;
-            }
-
-            output.push('>');
-            for child in node_ref.children() {
-                serialize_node_with_scores(child.id(), child, scores, output);
-            }
-            output.push_str("</");
-            output.push_str(tag_name);
-            output.push('>');
-        }
-        _ => {}
-    }
 }
 
 /// Full content extraction pipeline using Go's scoring algorithm
@@ -626,5 +585,124 @@ mod tests {
         assert!(content.is_some());
         let content = content.unwrap();
         assert!(content.contains("main article content"));
+    }
+
+    #[test]
+    fn test_find_top_candidate_respects_score_attrs() {
+        let html = r#"
+            <html><body>
+                <div class="content" score="50">High score pick</div>
+                <div score="10">Low score</div>
+            </body></html>
+        "#;
+        let doc = Html::parse_document(html);
+        let scores = NodeScores::new(); // force attribute-based scoring
+
+        let candidate = find_top_candidate(&doc, &scores).expect("candidate");
+        assert_eq!(candidate.value().name(), "div");
+        let text = normalize_spaces(&candidate.text().collect::<String>());
+        assert_eq!(text, "High score pick");
+    }
+
+    #[test]
+    fn test_find_top_candidate_skips_non_candidate_tags() {
+        let html = r#"
+            <html><body>
+                <br score="100">
+                <div score="30">Valid content</div>
+            </body></html>
+        "#;
+        let doc = Html::parse_document(html);
+        let scores = NodeScores::new();
+
+        let candidate = find_top_candidate(&doc, &scores).expect("candidate");
+        assert_eq!(candidate.value().name(), "div");
+        assert_eq!(
+            normalize_spaces(&candidate.text().collect::<String>()),
+            "Valid content"
+        );
+    }
+
+    #[test]
+    fn test_find_top_candidate_fallbacks_to_body() {
+        let html = "<html><body><div>No scores</div></body></html>";
+        let doc = Html::parse_document(html);
+        let scores = NodeScores::new();
+
+        let candidate = find_top_candidate(&doc, &scores).expect("fallback body");
+        assert_eq!(candidate.value().name(), "body");
+    }
+
+    #[test]
+    fn test_merge_siblings_wraps_and_includes() {
+        let html = r#"
+            <div class="parent">
+                <div class="candidate" data-content-score="50">Main content with text.</div>
+                <div class="sibling" data-content-score="20">Sibling paragraph with enough length to be included because it has more than eighty characters and low link density.</div>
+            </div>
+        "#;
+        let doc = Html::parse_fragment(html);
+        let cand_sel = Selector::parse(".candidate").unwrap();
+        let sib_sel = Selector::parse(".sibling").unwrap();
+        let candidate = doc.select(&cand_sel).next().unwrap();
+        let sibling = doc.select(&sib_sel).next().unwrap();
+
+        let mut scores = NodeScores::new();
+        scores.insert(candidate.id(), 50);
+        scores.insert(sibling.id(), 20);
+
+        let merged = merge_siblings(candidate, 50, &scores);
+        assert!(merged.starts_with("<div>"));
+        assert!(merged.contains("Main content with text"));
+        assert!(merged.contains("Sibling paragraph"));
+    }
+
+    #[test]
+    fn test_merge_siblings_filters_non_top_candidate_tags() {
+        let html = r#"
+            <div class="parent">
+                <div class="candidate" data-content-score="50">Main content</div>
+                <br data-content-score="10">
+                <b data-content-score="10">Bold text</b>
+                <div class="valid" data-content-score="20">Valid sibling</div>
+            </div>
+        "#;
+        let doc = Html::parse_fragment(html);
+        let cand = doc.select(&Selector::parse(".candidate").unwrap()).next().unwrap();
+        let valid = doc.select(&Selector::parse(".valid").unwrap()).next().unwrap();
+
+        let mut scores = NodeScores::new();
+        scores.insert(cand.id(), 50);
+        scores.insert(valid.id(), 20);
+
+        let merged = merge_siblings(cand, 50, &scores);
+        assert!(merged.contains("Main content"));
+        assert!(merged.contains("Valid sibling"));
+        assert!(!merged.contains("<br"));
+        assert!(!merged.contains("<b"));
+    }
+
+    #[test]
+    fn test_merge_siblings_paragraph_rules() {
+        let html = r##"
+            <div class="parent">
+                <div class="candidate" data-content-score="50">Main content</div>
+                <p class="long" data-content-score="5">This is a long paragraph with more than eighty characters of text content to test the length threshold logic with low link density for inclusion.</p>
+                <p class="short-end" data-content-score="5">Short sentence.</p>
+                <p class="short-no-end" data-content-score="5">Short no end</p>
+                <p class="short-link" data-content-score="5">Short <a href="#">link</a>.</p>
+            </div>
+        "##;
+
+        let doc = Html::parse_fragment(html);
+        let cand = doc.select(&Selector::parse(".candidate").unwrap()).next().unwrap();
+        let mut scores = NodeScores::new();
+        scores.insert(cand.id(), 50);
+
+        let merged = merge_siblings(cand, 50, &scores);
+
+        assert!(merged.contains("long paragraph"));
+        assert!(merged.contains("Short sentence."));
+        assert!(!merged.contains("short-link"));
     }
 }

@@ -21,5 +21,5 @@
   "url": "https://www.theverge.com/tech/839392/project-aura-android-xr-software-headsets-ai-glasses",
   "video_metadata": null,
   "video_url": null,
-  "word_count": 11810
+  "word_count": 11808
 }

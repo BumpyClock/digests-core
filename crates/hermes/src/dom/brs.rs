@@ -1,92 +1,34 @@
 // ABOUTME: Go-compatible BR to paragraph conversion.
 // ABOUTME: Ports BrsToPs from Go hermes internal/utils/dom/brs.go
 
+use once_cell::sync::Lazy;
+use regex::Regex;
 use scraper::{Html, Selector};
 
-/// Patterns for BR tags in various formats
-const BR_PATTERNS: &[&str] = &["<br>", "<br/>", "<br />", "<BR>", "<BR/>", "<BR />"];
+// Match two or more consecutive <br> tags (any capitalization, optional whitespace)
+#[allow(dead_code)]
+static DOUBLE_BR_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?i)(?:<br[^>]*>\s*){2,}").unwrap());
 
-/// Check if we have 2+ consecutive BRs
+#[allow(dead_code)]
 fn has_double_br(html: &str) -> bool {
-    let html_lower = html.to_lowercase();
-
-    // Check for patterns like <br><br> or <br /><br />
-    for pat1 in BR_PATTERNS {
-        for pat2 in BR_PATTERNS {
-            let double = format!("{}{}", pat1.to_lowercase(), pat2.to_lowercase());
-            if html_lower.contains(&double) {
-                return true;
-            }
-            // Allow whitespace between
-            let double_ws = format!("{}\n{}", pat1.to_lowercase(), pat2.to_lowercase());
-            if html_lower.contains(&double_ws) {
-                return true;
-            }
-            let double_ws2 = format!("{} {}", pat1.to_lowercase(), pat2.to_lowercase());
-            if html_lower.contains(&double_ws2) {
-                return true;
-            }
-        }
-    }
-    false
+    DOUBLE_BR_RE.is_match(html)
 }
 
 /// Convert consecutive BR tags to paragraphs
 /// Matches Go's BrsToPs behavior
 pub fn brs_to_ps(html: &str) -> String {
-    // Quick check - if no double BRs, nothing to do
-    if !has_double_br(html) {
+    if !DOUBLE_BR_RE.is_match(html) {
         return html.to_string();
     }
 
-    let mut result = html.to_string();
-
-    // Replace 2+ consecutive BRs with paragraph break marker
-    // Use a unique marker to avoid conflicts
-    const MARKER: &str = "<!--BR_TO_P_SPLIT-->";
-
-    // Normalize BR tags first
-    for pat in BR_PATTERNS {
-        result = result.replace(pat, "<br>");
-    }
-
-    // Replace consecutive BRs (with optional whitespace) with marker
-    let br_consecutive_patterns = [
-        "<br><br>",
-        "<br>\n<br>",
-        "<br> <br>",
-        "<br>\r\n<br>",
-        "<br>\n\n<br>",
-    ];
-
-    for pattern in &br_consecutive_patterns {
-        while result.contains(pattern) {
-            result = result.replace(pattern, MARKER);
-        }
-    }
-
-    // If no markers were placed, return original
-    if !result.contains(MARKER) {
-        return html.to_string();
-    }
-
-    // Split by marker and wrap each non-empty segment in <p>
-    let parts: Vec<&str> = result.split(MARKER).collect();
-
-    if parts.len() <= 1 {
-        return html.to_string();
-    }
-
-    let mut output = String::new();
-    for (i, part) in parts.iter().enumerate() {
-        let trimmed = part.trim();
+    fn append_chunk(out: &mut String, chunk: &str) {
+        let trimmed = chunk.trim();
         if trimmed.is_empty() {
-            continue;
+            return;
         }
-
-        // Check if already wrapped in block element
         let lower = trimmed.to_lowercase();
-        let is_block = lower.starts_with("<p")
+        let is_block_start = lower.starts_with("<p")
             || lower.starts_with("<div")
             || lower.starts_with("<article")
             || lower.starts_with("<section")
@@ -99,19 +41,40 @@ pub fn brs_to_ps(html: &str) -> String {
             || lower.starts_with("<ul")
             || lower.starts_with("<ol")
             || lower.starts_with("<blockquote");
+        let is_block_end = lower.ends_with("</p>")
+            || lower.ends_with("</div>")
+            || lower.ends_with("</article>")
+            || lower.ends_with("</section>")
+            || lower.ends_with("</ul>")
+            || lower.ends_with("</ol>")
+            || lower.ends_with("</blockquote>");
 
-        if is_block {
-            output.push_str(trimmed);
-        } else {
-            output.push_str("<p>");
-            output.push_str(trimmed);
-            output.push_str("</p>");
+        if !out.is_empty() {
+            out.push('\n');
         }
 
-        if i < parts.len() - 1 {
-            output.push('\n');
+        if is_block_start || is_block_end {
+            out.push_str(trimmed);
+        } else {
+            out.push_str("<p>");
+            out.push_str(trimmed);
+            out.push_str("</p>");
         }
     }
+
+    let mut output = String::new();
+    let mut last_end = 0;
+    for mat in DOUBLE_BR_RE.find_iter(html) {
+        let before = &html[last_end..mat.start()];
+        append_chunk(&mut output, before);
+        if !output.is_empty() {
+            output.push('\n');
+        }
+        output.push_str("<p> </p>");
+        last_end = mat.end();
+    }
+    let tail = &html[last_end..];
+    append_chunk(&mut output, tail);
 
     output
 }
@@ -206,6 +169,30 @@ mod tests {
     }
 
     #[test]
+    fn test_brs_to_ps_creates_empty_paragraph_from_double_break() {
+        let input = r#"<div class="article adbox"><br /><br /><p>Ooo good one</p></div>"#;
+        let output = brs_to_ps(input);
+
+        assert!(output.contains("<p> </p>"));
+        assert!(output.contains("<p>Ooo good one</p>"));
+    }
+
+    #[test]
+    fn test_brs_to_ps_splits_inline_text_after_double_break() {
+        let input = "<p>Here is some text<br /><br />Here is more text</p>";
+        let output = brs_to_ps(input);
+
+        let doc = Html::parse_fragment(&output);
+        let p_sel = Selector::parse("p").unwrap();
+        let p_count = doc.select(&p_sel).count();
+        assert!(p_count >= 2, "expected multiple paragraphs from double BRs");
+        assert!(
+            output.contains("Here is some text") && output.contains("Here is more text"),
+            "should preserve text chunks"
+        );
+    }
+
+    #[test]
     fn test_rewrite_top_level_html() {
         let input = "<html><div>Content</div></html>";
         let output = rewrite_top_level(input);
@@ -221,5 +208,18 @@ mod tests {
 
         assert!(output.contains("<div"));
         assert!(!output.contains("<body"));
+    }
+
+    #[test]
+    fn test_rewrite_top_level_preserves_attributes() {
+        let input = r#"<html lang="en"><body class="article"><div id="content">Test</div></body></html>"#;
+        let output = rewrite_top_level(input);
+
+        let doc = Html::parse_fragment(&output);
+        let lang_sel = Selector::parse("div[lang=\"en\"]").unwrap();
+        assert!(doc.select(&lang_sel).next().is_some());
+
+        let class_sel = Selector::parse("div.article").unwrap();
+        assert!(doc.select(&class_sel).next().is_some());
     }
 }

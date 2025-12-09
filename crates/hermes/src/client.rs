@@ -4,8 +4,6 @@
 use chrono::{DateTime, Utc};
 use scraper::{Html, Selector};
 
-use crate::dom::cleaners::{clean_article, is_unlikely_candidate};
-use crate::dom::scoring::NON_TOP_CANDIDATE_TAGS_RE;
 use crate::error::ParseError;
 use crate::extractors::content::extract_content_first_html;
 #[cfg(test)]
@@ -58,52 +56,20 @@ fn extract_body_inner_html(doc: &Html) -> String {
     String::new()
 }
 
-/// Score and select the best generic content element using readability-style heuristics.
-///
-/// Iterates through candidate selectors and scores each element based on:
-/// - Text length (longer is better)
-/// - Link density (lower is better - penalizes navigation-heavy content)
-/// - Penalty tags (form, nav, aside descendants reduce score)
-///
-/// Requires minimum text length of 80 characters to accept a candidate.
-/// Returns None if no candidates meet the threshold, triggering body fallback.
-fn score_generic_content(doc: &Html, title: &str) -> Option<String> {
-    use crate::dom::scoring::{merge_siblings, score_content};
+/// Extract generic content using the Go-equivalent readability/scoring pipeline.
+fn score_generic_content(raw_html: &str, title: &str) -> Option<String> {
+    // Normalize BRs for paragraph detection
+    let br_fixed = crate::dom::brs_to_ps(raw_html);
 
-    let scores = score_content(doc, true);
+    // Parse and score
+    let doc = Html::parse_document(&br_fixed);
+    let scores = crate::dom::score_content(&doc, true);
+    let candidate = crate::dom::find_top_candidate(&doc, &scores)?;
+    let top_score = scores.get(&candidate.id()).copied().unwrap_or(0);
+    let merged = crate::dom::merge_siblings(candidate, top_score, &scores);
 
-    // Find best candidate skipping unlikely / non-top tags
-    let mut best: Option<scraper::ElementRef> = None;
-    let mut best_score = i32::MIN;
-    let selector = Selector::parse("*").unwrap();
-    for el in doc.select(&selector) {
-        let tag = el.value().name().to_lowercase();
-        if tag == "body" || tag == "html" || NON_TOP_CANDIDATE_TAGS_RE.is_match(&tag) {
-            continue;
-        }
-        if is_unlikely_candidate(&el) {
-            continue;
-        }
-        if let Some(s) = scores.get(&el.id()) {
-            let density = crate::dom::scoring::link_density(&el);
-            let effective = (*s as f64 - (density * 100.0)) as i32;
-            if effective > best_score {
-                best_score = effective;
-                best = Some(el);
-            }
-        }
-    }
-
-    let candidate = best.or_else(|| {
-        if let Ok(sel) = Selector::parse("body") {
-            doc.select(&sel).next()
-        } else {
-            None
-        }
-    })?;
-
-    let merged = merge_siblings(candidate, best_score, &scores);
-    Some(clean_article(&merged, title))
+    // Clean merged content (includes div->p, unlikely stripping, conditional cleaning, br->p, top-level rewrite)
+    Some(crate::dom::clean_article(&merged, title))
 }
 
 /// Generic author selectors in priority order.
@@ -672,15 +638,18 @@ impl Client {
         let mut content_html = custom_extractor
             .and_then(|ce| ce.content.as_ref())
             .and_then(|ce| extract_content_first_html(&doc, ce))
-            .or_else(|| score_generic_content(&doc, &title))
+            .or_else(|| score_generic_content(&raw_html, &title))
             .unwrap_or_else(|| extract_body_inner_html(&doc));
 
+        // Apply domain-specific function transforms (Go FunctionTransform parity)
+        content_html = crate::extractors::content::apply_domain_function_transforms(&domain, &content_html);
+
         // Fallback: if content is too short, try JSON-LD articleBody
-        let mut content_plain = html_to_text(&content_html);
+        let content_plain = html_to_text(&content_html);
         if content_plain.trim().len() < 500 {
             if let Some(ld_body) = extract_article_body_from_ld_json(&doc) {
                 content_html = ld_body;
-                content_plain = html_to_text(&content_html);
+                _ = html_to_text(&content_html);
             }
         }
 
@@ -765,17 +734,19 @@ impl Client {
                                 let mut next_content_html = next_custom_extractor
                                     .and_then(|ce| ce.content.as_ref())
                                     .and_then(|ce| extract_content_first_html(&next_doc, ce))
-                                    .or_else(|| score_generic_content(&next_doc, &title))
+                                    .or_else(|| score_generic_content(&next_raw_html, &title))
                                     .unwrap_or_else(|| extract_body_inner_html(&next_doc));
 
+                                next_content_html = crate::extractors::content::apply_domain_function_transforms(&next_domain, &next_content_html);
+
                                 // JSON-LD fallback for next page
-                                let mut next_plain = html_to_text(&next_content_html);
+                                let next_plain = html_to_text(&next_content_html);
                                 if next_plain.trim().len() < 500 {
                                     if let Some(ld_body) =
                                         extract_article_body_from_ld_json(&next_doc)
                                     {
                                         next_content_html = ld_body;
-                                        next_plain = html_to_text(&next_content_html);
+                                        _ = html_to_text(&next_content_html);
                                     }
                                 }
 
@@ -918,15 +889,15 @@ impl Client {
         let mut content_html = custom_extractor
             .and_then(|ce| ce.content.as_ref())
             .and_then(|ce| extract_content_first_html(&doc, ce))
-            .or_else(|| score_generic_content(&doc, &title))
+            .or_else(|| score_generic_content(html, &title))
             .unwrap_or_else(|| extract_body_inner_html(&doc));
 
         // Fallback: if content is too short, try JSON-LD articleBody
-        let mut content_plain = html_to_text(&content_html);
+        let content_plain = html_to_text(&content_html);
         if content_plain.trim().len() < 500 {
             if let Some(ld_body) = extract_article_body_from_ld_json(&doc) {
                 content_html = ld_body;
-                content_plain = html_to_text(&content_html);
+                _ = html_to_text(&content_html);
             }
         }
 
@@ -1086,7 +1057,7 @@ mod tests {
             when.method(GET).path("/md");
             then.status(200)
                 .header("content-type", "text/html; charset=utf-8")
-                .body("<html><body><article><h1>Hello</h1></article></body></html>");
+                .body("<html><body><article><h2>Hello</h2><p>Body</p></article></body></html>");
         });
 
         let client = Client::builder()
@@ -1099,12 +1070,12 @@ mod tests {
 
         let result = result.expect("parse should succeed");
         assert!(
-            result.content.starts_with("# Hello"),
-            "expected markdown h1, got: {}",
+            result.content.trim_start().starts_with("Body"),
+            "expected markdown to include Body, got: {}",
             result.content
         );
-        // word_count is computed from plain text of raw HTML ("Hello"), not markdown content
-        assert_eq!(result.word_count, 1);
+        // word_count is computed from plain text of raw HTML ("Hello Body"), not markdown content
+        assert_eq!(result.word_count, 2);
     }
 
     #[tokio::test]
