@@ -704,10 +704,10 @@ fn apply_default_clean(html: &str) -> String {
     doc.html().to_string()
 }
 
-/// Applies filters and transforms to HTML string.
+/// Applies filters and transforms to HTML string using dom_query in-place mutation.
 ///
-/// This is a wrapper around the legacy extract_inner_html_filtered that works with HTML strings
-/// instead of requiring a scraper::ElementRef.
+/// Parses HTML once, applies all transforms and cleaners in-place, serializes once.
+/// This eliminates repeated parse/serialize cycles for O(S) complexity.
 fn apply_filters_and_transforms(
     inner_html: &str,
     clean_selectors: &[String],
@@ -715,21 +715,9 @@ fn apply_filters_and_transforms(
     use_default_cleaner: bool,
     preserve_tags: bool,
 ) -> String {
-    // Fast path: if no transforms, no cleaners, and default_cleaner is off, return as-is (post cleaners only)
-    if !use_default_cleaner && clean_selectors.is_empty() && transforms.is_empty() {
-        return apply_post_cleaners(inner_html);
-    }
-
-    // For now, parse selectors and delegate to the old function
-    // TODO: Fully migrate this to dom_query
-    let parsed_selectors: Vec<Selector> = clean_selectors
-        .iter()
-        .filter_map(|s| Selector::parse(s).ok())
-        .collect();
-
-    apply_filters_and_transforms_legacy(
+    apply_filters_and_transforms_unified(
         inner_html,
-        &parsed_selectors,
+        clean_selectors,
         transforms,
         use_default_cleaner,
         preserve_tags,
@@ -842,6 +830,206 @@ fn apply_transforms(
         serialize_node_with_transforms(child, &node_transforms, &unwrap_ids, &mut output);
     }
     output
+}
+
+/// Applies a TransformSpec to a Selection using dom_query mutation.
+fn apply_transform_to_selection(sel: &Selection, transform: &TransformSpec) {
+    match transform {
+        TransformSpec::Tag { value } => {
+            sel.rename(value);
+        }
+        TransformSpec::Noop => {}
+        TransformSpec::NoscriptToDiv => {
+            // HTML5 parses noscript contents as raw text, so rename() may not work.
+            // Instead, rebuild as <div> wrapping the inner content.
+            let inner = sel.inner_html().to_string();
+            sel.replace_with_html(format!("<div>{}</div>", inner));
+        }
+        TransformSpec::Unwrap => {
+            let inner = sel.inner_html().to_string();
+            sel.replace_with_html(inner);
+        }
+        TransformSpec::MoveAttr { from, to } => {
+            if let Some(val) = sel.attr(from) {
+                let val_str = val.to_string();
+                sel.set_attr(to, &val_str);
+            }
+        }
+        TransformSpec::SetAttr { name, value } => {
+            sel.set_attr(name, value);
+        }
+    }
+}
+
+/// Handles the special case: noscript containing a single img -> wrap in span
+fn handle_noscript_special_case(doc: &Document, selector_str: &str) {
+    let noscripts: Vec<_> = doc.select(selector_str).nodes().iter().cloned().collect();
+    for node in noscripts {
+        let sel = Selection::from(node);
+        // Check if this noscript contains exactly one element child that is an img
+        // Use children() to get direct children instead of "> *" selector
+        let children: Vec<_> = sel.children().iter().collect();
+        // Filter to just element children (skip text nodes)
+        let element_children: Vec<_> = children
+            .iter()
+            .filter(|c| c.is("*"))  // is("*") matches any element
+            .collect();
+        if element_children.len() == 1 {
+            let first_child = element_children[0];
+            if first_child.is("img") {
+                let img_html = first_child.html().to_string();
+                sel.replace_with_html(format!("<span>{}</span>", img_html));
+            }
+        }
+    }
+}
+
+/// Applies transforms using dom_query in-place mutation.
+/// This replaces the scraper-based apply_transforms().
+fn apply_transforms_dom(
+    html: &str,
+    transforms: &std::collections::HashMap<String, TransformSpec>,
+) -> String {
+    if transforms.is_empty() {
+        return html.to_string();
+    }
+
+    let doc = Document::from(html);
+
+    for (selector_str, transform) in transforms {
+        // Handle noscript special case first
+        if matches!(transform, TransformSpec::NoscriptToDiv) {
+            handle_noscript_special_case(&doc, selector_str);
+        }
+
+        // Collect nodes first to avoid mutation during iteration
+        let nodes: Vec<_> = doc.select(selector_str).nodes().iter().cloned().collect();
+        for node in nodes {
+            let sel = Selection::from(node);
+            apply_transform_to_selection(&sel, transform);
+        }
+    }
+
+    doc.html().to_string()
+}
+
+/// Unified pipeline that parses once, mutates in-place, serializes once.
+/// This consolidates all processing steps into a single parse-mutate-serialize cycle.
+fn apply_filters_and_transforms_unified(
+    inner_html: &str,
+    clean_selectors: &[String],
+    transforms: &std::collections::HashMap<String, TransformSpec>,
+    use_default_cleaner: bool,
+    _preserve_tags: bool, // kept for API compatibility
+) -> String {
+    // Fast path: no processing needed
+    if !use_default_cleaner && clean_selectors.is_empty() && transforms.is_empty() {
+        return apply_post_cleaners(inner_html);
+    }
+
+    // Single parse
+    let doc = Document::from(inner_html);
+
+    // Step 1: Apply transforms (in-place)
+    for (selector_str, transform) in transforms {
+        // Skip empty selectors to avoid panic
+        if selector_str.trim().is_empty() {
+            continue;
+        }
+
+        // Handle noscript special case
+        if matches!(transform, TransformSpec::NoscriptToDiv) {
+            handle_noscript_special_case(&doc, selector_str);
+        }
+
+        let nodes: Vec<_> = doc.select(selector_str).nodes().iter().cloned().collect();
+        for node in nodes {
+            let sel = Selection::from(node);
+            apply_transform_to_selection(&sel, transform);
+        }
+    }
+
+    // Step 2: Apply default cleaner (in-place)
+    if use_default_cleaner {
+        apply_default_clean_to_doc(&doc);
+    }
+
+    // Step 3: Remove elements matching clean selectors (in-place)
+    for selector in clean_selectors {
+        doc.select(selector).remove();
+    }
+
+    // Step 4: Apply post-cleaners (in-place)
+    fix_headings_doc(&doc);
+    rewrite_empty_links_doc(&doc);
+
+    // Serialize content from body (noscript fragments may also end up in head due to HTML5 parsing)
+    let body_content = doc.select("body").inner_html().to_string();
+    let head_content = doc.select("head").inner_html().to_string();
+
+    // Combine head and body content (head content might contain transformed noscripts)
+    if head_content.is_empty() {
+        body_content
+    } else if body_content.is_empty() {
+        head_content
+    } else {
+        format!("{}{}", head_content, body_content)
+    }
+}
+
+/// Applies default cleaning to a Document in-place.
+fn apply_default_clean_to_doc(doc: &Document) {
+    // Remove common noise elements
+    for selector in &[
+        "script", "style", "noscript", "nav", "header", "footer",
+        "aside", "form", "iframe", "button", "input", "select", "textarea"
+    ] {
+        doc.select(selector).remove();
+    }
+
+    // Remove elements with ad-related classes (same markers as AD_CLASS_MARKERS)
+    let elements: Vec<_> = doc.select("*").nodes().iter().cloned().collect();
+    for node in elements {
+        let sel = Selection::from(node);
+        if let Some(class) = sel.attr("class") {
+            let class_lower = class.to_lowercase();
+            if AD_CLASS_MARKERS.iter().any(|marker| class_lower.contains(marker)) {
+                sel.remove();
+            }
+        }
+    }
+
+    // Collapse consecutive <br> tags and remove empty paragraphs
+    collapse_consecutive_brs_doc(doc);
+    remove_empty_paragraphs_doc(doc);
+}
+
+/// Collapses consecutive <br> tags in a Document.
+fn collapse_consecutive_brs_doc(doc: &Document) {
+    // Find br elements and remove consecutive ones
+    let brs: Vec<_> = doc.select("br").nodes().iter().cloned().collect();
+    let mut prev_was_br = false;
+    for node in brs {
+        let sel = Selection::from(node);
+        if prev_was_br {
+            sel.remove();
+        } else {
+            prev_was_br = true;
+        }
+    }
+}
+
+/// Removes empty paragraphs from a Document.
+fn remove_empty_paragraphs_doc(doc: &Document) {
+    let paragraphs: Vec<_> = doc.select("p").nodes().iter().cloned().collect();
+    for node in paragraphs {
+        let sel = Selection::from(node);
+        let text = sel.text();
+        let has_img = sel.select("img").length() > 0;
+        if text.trim().is_empty() && !has_img {
+            sel.remove();
+        }
+    }
 }
 
 /// Recursively serializes a node, applying transforms based on node ID mappings.
@@ -1419,6 +1607,64 @@ fn serialize_node_unwrap_links(
 pub fn apply_post_cleaners(html: &str) -> String {
     let with_fixed_headings = fix_headings(html);
     rewrite_empty_links(&with_fixed_headings)
+}
+
+/// Demotes all h1 elements except the first to h2.
+///
+/// Works on a Document in-place using dom_query mutation.
+/// If a document contains more than one h1, the first h1 stays as h1 and all
+/// subsequent h1 elements are demoted to h2.
+fn fix_headings_doc(doc: &Document) {
+    let h1s: Vec<_> = doc.select("h1").nodes().iter().cloned().collect();
+
+    if h1s.len() <= 1 {
+        return; // No demotion needed
+    }
+
+    // Skip first h1, demote rest to h2
+    for node in h1s.into_iter().skip(1) {
+        let sel = Selection::from(node);
+        // Use replace_with_html to rename tag
+        let outer = sel.html().to_string();
+        let new_html = outer
+            .replacen("<h1", "<h2", 1)
+            .replacen("</h1>", "</h2>", 1);
+        sel.replace_with_html(new_html);
+    }
+}
+
+/// Unwraps <a> tags that have empty href or href="#".
+///
+/// Works on a Document in-place using dom_query mutation.
+/// Anchor elements with `href=""` or `href="#"` that contain text content are
+/// replaced with their inner content (the anchor tag is removed but children remain).
+fn rewrite_empty_links_doc(doc: &Document) {
+    let anchors: Vec<_> = doc.select("a").nodes().iter().cloned().collect();
+
+    for node in anchors {
+        let sel = Selection::from(node);
+        let href = sel.attr("href").map(|s| s.to_string()).unwrap_or_default();
+        let href_trimmed = href.trim();
+
+        // Check if href is empty or just "#"
+        if href_trimmed.is_empty() || href_trimmed == "#" {
+            // Check if anchor has text content (don't unwrap empty anchors)
+            let text = sel.text();
+            if !text.trim().is_empty() {
+                // Unwrap: replace anchor with its inner content
+                let inner = sel.inner_html().to_string();
+                sel.replace_with_html(inner);
+            }
+        }
+    }
+}
+
+/// Applies all post-cleaners to a Document in-place.
+///
+/// This is the dom_query version that mutates the Document directly.
+fn apply_post_cleaners_doc(doc: &Document) {
+    fix_headings_doc(doc);
+    rewrite_empty_links_doc(doc);
 }
 
 #[cfg(test)]

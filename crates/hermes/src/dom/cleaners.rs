@@ -1,9 +1,11 @@
 // ABOUTME: Go-compatible DOM cleaners for content extraction.
 // ABOUTME: Implements unlikely stripping, conditional cleaning, heading fixes, br->p, and top-level rewrite.
 
+use std::collections::HashSet;
+
 use once_cell::sync::Lazy;
 use regex::Regex;
-use dom_query::{Document, Selection};
+use dom_query::{Document, Node, NodeId, Selection};
 
 use super::scoring::{get_weight, link_density, normalize_spaces};
 
@@ -137,17 +139,56 @@ pub fn is_empty_paragraph(sel: &Selection) -> bool {
     sel.select("img").length() == 0
 }
 
-fn should_keep(sel: &Selection, keep_class_selectors: &[String]) -> bool {
+fn should_keep(
+    sel: &Selection,
+    keep_class_selectors: &[String],
+    keep_class_subtree: Option<&HashSet<NodeId>>,
+) -> bool {
     if sel.has_class(KEEP_CLASS) {
         return true;
     }
-    for keep_sel in keep_class_selectors {
-        if sel.is(keep_sel) {
-            return true;
-        }
+    if keep_class_selectors.iter().any(|keep_sel| sel.is(keep_sel)) {
+        return true;
     }
-    // Check if any descendant has the keep class
+
+    if let Some(subtree) = keep_class_subtree {
+        if let Some(node) = sel.nodes().first() {
+            return subtree.contains(&node.id);
+        }
+        return false;
+    }
+
+    // Fallback for contexts where we don't have a precomputed map
     sel.select(&format!(".{}", KEEP_CLASS)).length() > 0
+}
+
+fn build_keep_class_map(doc: &Document) -> HashSet<NodeId> {
+    fn walk(node: Node, acc: &mut HashSet<NodeId>) -> bool {
+        let mut has_keep = false;
+
+        for child in node.children() {
+            if walk(child, acc) {
+                has_keep = true;
+            }
+        }
+
+        if node.is_element() {
+            let sel = Selection::from(node);
+            if sel.has_class(KEEP_CLASS) {
+                has_keep = true;
+            }
+        }
+
+        if has_keep {
+            acc.insert(node.id);
+        }
+
+        has_keep
+    }
+
+    let mut acc = HashSet::new();
+    walk(doc.root(), &mut acc);
+    acc
 }
 
 fn remove_unless_content(sel: &Selection, weight: i32) -> bool {
@@ -199,15 +240,34 @@ fn score_commas(text: &str) -> i32 {
     text.matches(',').count() as i32
 }
 
-fn strip_unlikely(doc: &mut Document, keep_selectors: &[String]) {
-    let elements: Vec<_> = doc.select("*").nodes().iter().cloned().collect();
+fn strip_unlikely(
+    doc: &mut Document,
+    keep_selectors: &[String],
+    keep_class_subtree: &HashSet<NodeId>,
+) {
+    fn walk(
+        node: Node,
+        keep_selectors: &[String],
+        keep_class_subtree: &HashSet<NodeId>,
+    ) {
+        let children: Vec<Node> = node.children();
+        for child in children {
+            walk(child, keep_selectors, keep_class_subtree);
+        }
 
-    for node in elements {
+        if !node.is_element() {
+            return;
+        }
+
         let sel = Selection::from(node);
-        if is_unlikely_candidate(&sel) && !should_keep(&sel, keep_selectors) {
+        if is_unlikely_candidate(&sel) && !should_keep(&sel, keep_selectors, Some(keep_class_subtree))
+        {
             sel.remove();
         }
     }
+
+    let root = doc.root();
+    walk(root, keep_selectors, keep_class_subtree);
 }
 
 fn build_keep_selectors(doc: &Document) -> Vec<String> {
@@ -223,12 +283,21 @@ fn build_keep_selectors(doc: &Document) -> Vec<String> {
     keep
 }
 
-fn clean_conditionally(doc: &mut Document, keep_selectors: &[String]) {
-    let elements: Vec<_> = doc.select(CLEAN_CONDITIONALLY_TAGS_LIST).nodes().iter().cloned().collect();
+fn clean_conditionally(
+    doc: &mut Document,
+    keep_selectors: &[String],
+    keep_class_subtree: &HashSet<NodeId>,
+) {
+    let elements: Vec<_> = doc
+        .select(CLEAN_CONDITIONALLY_TAGS_LIST)
+        .nodes()
+        .iter()
+        .cloned()
+        .collect();
 
     for node in elements {
         let sel = Selection::from(node);
-        if should_keep(&sel, keep_selectors) {
+        if should_keep(&sel, keep_selectors, Some(keep_class_subtree)) {
             continue;
         }
         let weight = get_weight(&sel);
@@ -323,9 +392,10 @@ pub fn clean_article(html: &str, title: &str) -> String {
 
     let mut doc = Document::from(converted.as_str());
     let keep_selectors = build_keep_selectors(&doc);
+    let keep_class_subtree = build_keep_class_map(&doc);
 
-    strip_unlikely(&mut doc, &keep_selectors);
-    clean_conditionally(&mut doc, &keep_selectors);
+    strip_unlikely(&mut doc, &keep_selectors, &keep_class_subtree);
+    clean_conditionally(&mut doc, &keep_selectors, &keep_class_subtree);
     clean_headers(&mut doc, title);
     clean_images(&mut doc);
     clean_empty_paragraphs(&mut doc);
@@ -340,29 +410,30 @@ fn convert_divs_to_paragraphs(doc: &Document) -> String {
     let html_str = doc.html().to_string();
     let result = Document::from(html_str.as_str());
 
-    // Find all divs and spans that don't contain block-level elements
-    let block_tags = "a,blockquote,dl,div,img,p,pre,table";
-    let divs_and_spans: Vec<_> = result.select("div, span").nodes().iter().cloned().collect();
+    let block_tags: HashSet<&str> = ["a", "blockquote", "dl", "div", "img", "p", "pre", "table"]
+        .into_iter()
+        .collect();
 
-    for node in divs_and_spans {
-        let sel = Selection::from(node);
-        let tag_name = sel.nodes().first()
-            .and_then(|n| n.node_name())
-            .unwrap_or_default()
-            .to_lowercase();
-
-        if tag_name != "div" && tag_name != "span" {
-            continue;
+    fn walk(node: Node, block_tags: &HashSet<&str>) -> bool {
+        let mut has_block_descendant = false;
+        for child in node.children() {
+            if walk(child, block_tags) {
+                has_block_descendant = true;
+            }
         }
 
-        // Check if it contains any block-level elements
-        let has_block = block_tags.split(',')
-            .any(|tag| sel.select(tag).length() > 0);
+        let tag_name = node
+            .node_name()
+            .unwrap_or_default()
+            .to_lowercase();
+        let mut tag_for_block = tag_name.as_str();
 
-        if !has_block {
-            // Convert to <p>
+        if (tag_for_block == "div" || tag_for_block == "span") && !has_block_descendant {
+            let sel = Selection::from(node);
             let inner = sel.inner_html();
-            let attrs = sel.nodes().first()
+            let attrs = sel
+                .nodes()
+                .first()
                 .map(|n| {
                     n.attrs()
                         .iter()
@@ -378,8 +449,13 @@ fn convert_divs_to_paragraphs(doc: &Document) -> String {
                 format!("<p {}>{}</p>", attrs, inner)
             };
             sel.replace_with_html(new_html.as_str());
+            tag_for_block = "p";
         }
+
+        block_tags.contains(tag_for_block) || has_block_descendant
     }
+
+    walk(result.root(), &block_tags);
 
     result.html().to_string()
 }
