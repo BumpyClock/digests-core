@@ -23,6 +23,7 @@ use crate::formats::{
 use crate::options::{ClientBuilder, ContentType, Options};
 use crate::resource::{fetch, FetchOptions};
 use crate::result::{word_count, ParseResult};
+use crate::dom::brs::brs_to_ps_inplace;
 #[cfg(test)]
 use std::collections::HashMap;
 use std::net::ToSocketAddrs;
@@ -93,11 +94,12 @@ fn wrap_plaintext_as_html(text: &str) -> String {
 
 /// Extract generic content using the Go-equivalent readability/scoring pipeline.
 fn score_generic_content(raw_html: &str, title: &str) -> Option<String> {
-    // Normalize BRs for paragraph detection
-    let br_fixed = crate::dom::brs_to_ps(raw_html);
+    // Parse once, then normalize BRs in-place for paragraph detection
+    let mut doc = Document::from(raw_html);
+    brs_to_ps_inplace(&mut doc);
 
-    // Parse and score
-    let doc = Document::from(br_fixed.as_str());
+    // Score the normalized document
+    let doc = doc;
     let scores = crate::dom::score_content(&doc, true);
 
     // Pre-compute text metrics for O(1) link density lookups
@@ -727,7 +729,6 @@ impl Client {
         if content_plain.trim().len() < 50 {
             if let Some(ld_body) = extract_article_body_from_ld_json(&doc) {
                 content_html = wrap_plaintext_as_html(&ld_body);
-                _ = html_to_text(&content_html);
             }
         }
 
@@ -845,7 +846,6 @@ impl Client {
                                         extract_article_body_from_ld_json(&next_doc)
                                     {
                                         next_content_html = ld_body;
-                                        _ = html_to_text(&next_content_html);
                                     }
                                 }
 

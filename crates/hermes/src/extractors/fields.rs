@@ -14,6 +14,8 @@
 
 use dom_query::Document;
 
+use crate::extractors::compiled::get_or_compile;
+
 /// Normalizes whitespace in a string by collapsing runs of whitespace into single spaces.
 fn normalize_whitespace(s: &str) -> String {
     s.split_whitespace().collect::<Vec<_>>().join(" ")
@@ -33,7 +35,12 @@ fn normalize_whitespace(s: &str) -> String {
 /// `Some(String)` with the trimmed attribute value, or `None` if no match found.
 pub fn extract_first_attr(doc: &Document, selectors: &[&str], attr: &str) -> Option<String> {
     for &sel_str in selectors {
-        for el in doc.select(sel_str).iter() {
+        // Use pre-compiled selector from cache
+        let matcher = match get_or_compile(sel_str) {
+            Some(m) => m,
+            None => continue, // Invalid selector
+        };
+        for el in doc.select_matcher(&matcher).iter() {
             if let Some(value) = el.attr(attr) {
                 let trimmed = value.trim();
                 if !trimmed.is_empty() {
@@ -92,7 +99,12 @@ pub fn normalize_lang(value: &str) -> String {
 /// # Returns
 /// `Some(String)` with the content attribute value, or `None` if not found or empty.
 pub fn extract_meta_content(doc: &Document, selector: &str) -> Option<String> {
-    for el in doc.select(selector).iter() {
+    // Use pre-compiled selector from cache
+    let matcher = match get_or_compile(selector) {
+        Some(m) => m,
+        None => return None, // Invalid selector
+    };
+    for el in doc.select_matcher(&matcher).iter() {
         if let Some(content) = el.attr("content") {
             let trimmed = content.trim();
             if !trimmed.is_empty() {
@@ -116,7 +128,12 @@ pub fn extract_meta_content(doc: &Document, selector: &str) -> Option<String> {
 /// # Returns
 /// `Some(String)` with the attribute value, or `None` if not found or empty.
 pub fn extract_attr_first(doc: &Document, selector: &str, attr: &str) -> Option<String> {
-    for el in doc.select(selector).iter() {
+    // Use pre-compiled selector from cache
+    let matcher = match get_or_compile(selector) {
+        Some(m) => m,
+        None => return None, // Invalid selector
+    };
+    for el in doc.select_matcher(&matcher).iter() {
         if let Some(value) = el.attr(attr) {
             let trimmed = value.trim();
             if !trimmed.is_empty() {
@@ -151,8 +168,14 @@ pub fn extract_field_text_single(doc: &Document, selectors: &[&str]) -> Option<S
             continue;
         }
 
+        // Use pre-compiled selector from cache
+        let matcher = match get_or_compile(sel_str) {
+            Some(m) => m,
+            None => continue, // Invalid selector
+        };
+
         // For other elements, extract inner text
-        for el in doc.select(sel_str).iter() {
+        for el in doc.select_matcher(&matcher).iter() {
             let text = el.text();
             let normalized = normalize_whitespace(&text);
             if !normalized.is_empty() {

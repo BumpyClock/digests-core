@@ -398,9 +398,11 @@ pub fn clean_article(html: &str, title: &str) -> String {
     clean_conditionally(&mut doc, &keep_selectors, &keep_class_subtree);
     clean_nodes_unified(&mut doc, title);
 
-    let html = doc.html().to_string();
-    let html = crate::dom::brs::brs_to_ps(&html);
-    crate::dom::brs::rewrite_top_level(&html)
+    // In-place BR processing and top-level rewrite (single serialization)
+    crate::dom::brs::brs_to_ps_inplace(&doc);
+    crate::dom::brs::rewrite_top_level_inplace(&doc);
+
+    doc.html().to_string()
 }
 
 #[allow(dead_code)]

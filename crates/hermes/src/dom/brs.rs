@@ -181,7 +181,13 @@ fn wrap_bare_text(html: &str) -> String {
 /// Matches Go's RewriteTopLevel behavior
 pub fn rewrite_top_level(html: &str) -> String {
     let doc = Document::from(html);
+    rewrite_top_level_inplace(&doc);
+    doc.html().to_string()
+}
 
+/// Rewrite top-level body/html elements to divs in-place on a Document.
+/// This avoids re-parsing HTML when used as part of a larger processing pipeline.
+pub fn rewrite_top_level_inplace(doc: &Document) {
     // Rename html elements to div
     let html_elements = doc.select("html");
     for elem in html_elements.iter() {
@@ -193,8 +199,52 @@ pub fn rewrite_top_level(html: &str) -> String {
     for elem in body_elements.iter() {
         elem.rename("div");
     }
+}
 
-    doc.html().to_string()
+/// Process consecutive BR tags to paragraphs in-place on a Document.
+/// This is the core BR processing logic without re-parsing.
+pub fn brs_to_ps_inplace(doc: &Document) {
+    // Get all BR elements
+    let brs: Vec<_> = doc.select("br").iter().collect();
+
+    if brs.is_empty() {
+        return;
+    }
+
+    // Track consecutive BRs and replace them
+    let br_vec: Vec<_> = brs.iter().collect();
+    let mut i = 0;
+    while i < br_vec.len() {
+        let br = &br_vec[i];
+
+        // Check if this BR has length (hasn't been removed)
+        if br.length() == 0 {
+            i += 1;
+            continue;
+        }
+
+        // Check if the next sibling (skipping whitespace) is also a BR
+        if find_next_br(br).is_some() {
+            // Found consecutive BRs - replace with empty paragraph
+            br.replace_with_html("<p> </p>");
+
+            // Skip ahead - the subsequent BRs in this sequence will be removed
+            i += 1;
+
+            // Remove all subsequent BRs that follow
+            while i < br_vec.len() {
+                let next_br = &br_vec[i];
+                if next_br.length() > 0 && next_br.is("br") {
+                    next_br.remove();
+                    i += 1;
+                } else {
+                    break;
+                }
+            }
+        } else {
+            i += 1;
+        }
+    }
 }
 
 #[cfg(test)]
