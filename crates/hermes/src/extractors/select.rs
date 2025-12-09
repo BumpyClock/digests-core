@@ -15,6 +15,7 @@
 
 use dom_query::Document;
 
+use crate::extractors::compiled::get_or_compile;
 use crate::extractors::custom::{FieldExtractor, SelectorSpec};
 
 /// Normalizes whitespace in a string by collapsing runs of whitespace into single spaces.
@@ -72,46 +73,48 @@ fn extract_from_spec(doc: &Document, spec: &SelectorSpec) -> Vec<String> {
 
 /// Extracts inner text from elements matching a CSS selector.
 fn extract_text_from_css(doc: &Document, css: &str) -> Vec<String> {
-    // dom_query panics on invalid selectors, so catch it
-    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        doc.select(css)
-            .iter()
-            .filter_map(|el| {
-                let text = el.text();
-                let normalized = normalize_whitespace(&text);
-                if normalized.is_empty() {
-                    None
-                } else {
-                    Some(normalized)
-                }
-            })
-            .collect()
-    }));
+    // Use pre-compiled selector from cache
+    let matcher = match get_or_compile(css) {
+        Some(m) => m,
+        None => return vec![], // Invalid selector
+    };
 
-    result.unwrap_or_default()
+    doc.select_matcher(&matcher)
+        .iter()
+        .filter_map(|el| {
+            let text = el.text();
+            let normalized = normalize_whitespace(&text);
+            if normalized.is_empty() {
+                None
+            } else {
+                Some(normalized)
+            }
+        })
+        .collect()
 }
 
 /// Extracts an attribute value from elements matching a CSS selector.
 fn extract_attr_from_css(doc: &Document, css: &str, attr: &str) -> Vec<String> {
-    // dom_query panics on invalid selectors, so catch it
-    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        doc.select(css)
-            .iter()
-            .filter_map(|el| {
-                el.attr(attr).map(|v| {
-                    let trimmed = v.trim().to_string();
-                    if trimmed.is_empty() {
-                        None
-                    } else {
-                        Some(trimmed)
-                    }
-                })
-            })
-            .flatten()
-            .collect()
-    }));
+    // Use pre-compiled selector from cache
+    let matcher = match get_or_compile(css) {
+        Some(m) => m,
+        None => return vec![], // Invalid selector
+    };
 
-    result.unwrap_or_default()
+    doc.select_matcher(&matcher)
+        .iter()
+        .filter_map(|el| {
+            el.attr(attr).map(|v| {
+                let trimmed = v.trim().to_string();
+                if trimmed.is_empty() {
+                    None
+                } else {
+                    Some(trimmed)
+                }
+            })
+        })
+        .flatten()
+        .collect()
 }
 
 #[cfg(test)]

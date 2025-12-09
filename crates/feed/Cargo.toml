@@ -13,6 +13,8 @@ serde = { version = "1", features = ["derive"] }
 thiserror = "2.0.17"
 quick-xml = "0.38.4"
 digests-hermes = { path = "../hermes" }
+aho-corasick = "1.1"
+once_cell = "1"
 
 [dev-dependencies]
 pretty_assertions = "1"

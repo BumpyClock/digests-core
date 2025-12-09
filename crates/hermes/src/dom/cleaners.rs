@@ -403,6 +403,7 @@ pub fn clean_article(html: &str, title: &str) -> String {
     crate::dom::brs::rewrite_top_level(&html)
 }
 
+#[allow(dead_code)]
 fn convert_divs_to_paragraphs(doc: &Document) -> String {
     let html = doc.html();
     let mut doc = Document::from(html.as_ref());

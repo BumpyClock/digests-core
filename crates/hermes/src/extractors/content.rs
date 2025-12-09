@@ -20,9 +20,11 @@ use dom_query::{Document, Selection};
 use once_cell::sync::Lazy;
 use scraper::{Html, Selector};
 
+use crate::extractors::compiled::get_or_compile;
 use crate::extractors::custom::{ContentExtractor, SelectorSpec, TransformSpec};
 
 /// Selectors for elements that should be removed during default cleaning.
+#[allow(dead_code)]
 const DEFAULT_CLEAN_SELECTORS: &[&str] = &[
     "script", "style", "noscript", "nav", "header", "footer", "aside", "form", "iframe",
 ];
@@ -72,8 +74,12 @@ pub fn extract_content_html_opts(
             _ => continue,
         };
 
-        // With dom_query, selectors are validated inline
-        let matches = doc.select(css);
+        // Use pre-compiled selector from cache
+        let matcher = match get_or_compile(css) {
+            Some(m) => m,
+            None => continue, // Invalid selector
+        };
+        let matches = doc.select_matcher(&matcher);
         if matches.length() == 0 {
             continue;
         }
@@ -120,7 +126,12 @@ pub fn extract_content_raw_first_html(doc: &Document, ce: &ContentExtractor) -> 
             SelectorSpec::CssAttr(parts) if !parts.is_empty() => &parts[0],
             _ => continue,
         };
-        let sel = doc.select(css);
+        // Use pre-compiled selector from cache
+        let matcher = match get_or_compile(css) {
+            Some(m) => m,
+            None => continue,
+        };
+        let sel = doc.select_matcher(&matcher);
         if sel.length() > 0 {
             return Some(sel.inner_html().to_string());
         }
@@ -287,7 +298,12 @@ pub fn apply_domain_function_transforms(domain: &str, html: &str) -> String {
     }
 
     for (selector_str, func) in rules {
-        let selections = doc.select(&selector_str);
+        // Use pre-compiled selector from cache
+        let matcher = match get_or_compile(&selector_str) {
+            Some(m) => m,
+            None => continue, // Invalid selector, skip
+        };
+        let selections = doc.select_matcher(&matcher);
         for el in selections.iter() {
             if let Some(repl) = func(&el) {
                 if let Some(node) = el.nodes().first() {
@@ -646,6 +662,7 @@ fn build_element_with_attr(el: &Selection, attr: &str, value: &str) -> String {
 /// 4. Removes empty paragraphs (no text and no img children)
 ///
 /// Returns the cleaned HTML as a string.
+#[allow(dead_code)]
 fn apply_default_clean(html: &str) -> String {
     let doc = Document::from(html);
 
@@ -727,6 +744,7 @@ fn apply_filters_and_transforms(
 }
 
 /// Legacy implementation that works with parsed Selectors
+#[allow(dead_code)]
 fn apply_filters_and_transforms_legacy(
     inner_html: &str,
     clean_selectors: &[Selector],
@@ -802,6 +820,7 @@ fn apply_filters_and_transforms_legacy(
 ///
 /// For each (selector, transform) pair, finds matching elements and applies the transform.
 /// Transforms are applied by re-serializing the fragment with modifications.
+#[allow(dead_code)]
 fn apply_transforms(
     html: &str,
     transforms: &std::collections::HashMap<String, TransformSpec>,
@@ -888,6 +907,7 @@ fn handle_noscript_special_case(doc: &Document, selector_str: &str) {
 
 /// Applies transforms using dom_query in-place mutation.
 /// This replaces the scraper-based apply_transforms().
+#[allow(dead_code)]
 fn apply_transforms_dom(
     html: &str,
     transforms: &std::collections::HashMap<String, TransformSpec>,
@@ -1035,6 +1055,7 @@ fn remove_empty_paragraphs_doc(doc: &Document) {
 }
 
 /// Recursively serializes a node, applying transforms based on node ID mappings.
+#[allow(dead_code)]
 fn serialize_node_with_transforms(
     node: ego_tree::NodeRef<scraper::Node>,
     node_transforms: &std::collections::HashMap<ego_tree::NodeId, &TransformSpec>,
@@ -1188,6 +1209,7 @@ fn serialize_node_with_transforms(
 }
 
 /// Collects all node IDs in a subtree (to skip when serializing).
+#[allow(dead_code)]
 fn collect_node_ids(
     element: scraper::ElementRef,
     ids: &mut std::collections::HashSet<ego_tree::NodeId>,
@@ -1203,6 +1225,7 @@ fn collect_node_ids(
 }
 
 /// Serializes an HTML fragment, skipping nodes in `skip_ids` and applying transforms.
+#[allow(dead_code)]
 fn serialize_filtered(
     fragment: &Html,
     skip_ids: &std::collections::HashSet<ego_tree::NodeId>,
@@ -1219,6 +1242,7 @@ fn serialize_filtered(
 }
 
 /// Recursively serializes a node, applying filters and transforms.
+#[allow(dead_code)]
 fn serialize_node(
     node: ego_tree::NodeRef<scraper::Node>,
     skip_ids: &std::collections::HashSet<ego_tree::NodeId>,
@@ -1306,6 +1330,7 @@ fn serialize_node(
 }
 
 /// Serialize node preserving all tags (used in lightweight clean removal path)
+#[allow(dead_code)]
 fn serialize_node_preserve(node: ego_tree::NodeRef<scraper::Node>, output: &mut String) {
     match node.value() {
         scraper::Node::Text(text) => output.push_str(&**text),
@@ -1409,6 +1434,7 @@ fn fix_lazy_img_attrs(attrs: &mut Vec<(String, String)>) {
 }
 
 // Similar to fix_lazy_img_attrs but for <source> elements in <picture>/<video>
+#[allow(dead_code)]
 fn fix_lazy_source_attrs(attrs: &mut Vec<(String, String)>) {
     let mut src = None;
     let mut srcset = None;
@@ -1447,6 +1473,7 @@ fn fix_lazy_source_attrs(attrs: &mut Vec<(String, String)>) {
     }
 }
 
+#[allow(dead_code)]
 fn fix_lazy_anchor_attrs(attrs: &mut Vec<(String, String)>) {
     let mut href = None;
     for (k, v) in attrs.iter() {
@@ -1709,6 +1736,7 @@ fn rewrite_empty_links_doc(doc: &Document) {
 /// Applies all post-cleaners to a Document in-place.
 ///
 /// This is the dom_query version that mutates the Document directly.
+#[allow(dead_code)]
 fn apply_post_cleaners_doc(doc: &Document) {
     fix_headings_doc(doc);
     rewrite_empty_links_doc(doc);

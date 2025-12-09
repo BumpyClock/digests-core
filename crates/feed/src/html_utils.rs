@@ -1,6 +1,29 @@
 // ABOUTME: HTML utility functions for feed content processing.
 // ABOUTME: Provides tag stripping and HTML entity decoding matching Go behavior.
 
+use aho_corasick::AhoCorasick;
+use once_cell::sync::Lazy;
+
+/// Named HTML entities to decode (patterns for Aho-Corasick automaton).
+const ENTITY_PATTERNS: &[&str] = &[
+    "&amp;", "&lt;", "&gt;", "&quot;", "&apos;", "&#39;", "&nbsp;", "&ndash;", "&mdash;",
+    "&lsquo;", "&rsquo;", "&ldquo;", "&rdquo;", "&hellip;", "&copy;", "&reg;", "&trade;",
+    "&bull;", "&middot;", "&deg;", "&plusmn;", "&times;", "&divide;", "&frac12;", "&frac14;",
+    "&frac34;", "&euro;", "&pound;", "&yen;", "&cent;",
+];
+
+/// Replacement strings for each entity (must match order of ENTITY_PATTERNS).
+const ENTITY_REPLACEMENTS: &[&str] = &[
+    "&", "<", ">", "\"", "'", "'", " ", "–", "—", "'", "'", "\u{201C}", "\u{201D}", "…", "©",
+    "®", "™", "•", "·", "°", "±", "×", "÷", "½", "¼", "¾", "€", "£", "¥", "¢",
+];
+
+/// Aho-Corasick automaton for single-pass HTML entity replacement.
+/// Compiled once at first use, then reused for all subsequent calls.
+static ENTITY_MATCHER: Lazy<AhoCorasick> = Lazy::new(|| {
+    AhoCorasick::new(ENTITY_PATTERNS).expect("failed to build entity matcher")
+});
+
 /// Strips HTML tags from a string, returning plain text.
 /// This is a naive implementation that removes angle-bracketed content.
 pub fn strip_html(s: &str) -> String {
@@ -24,52 +47,19 @@ pub fn strip_html(s: &str) -> String {
 }
 
 /// Decodes common HTML entities to their character equivalents.
-/// Matches the entity map from the Go implementation.
+/// Uses Aho-Corasick for O(n) single-pass named entity replacement,
+/// then handles numeric entities in a second pass.
 pub fn decode_entities(s: &str) -> String {
-    let mut result = s.to_string();
-
-    // Common named entities (matching Go's html/strip.go)
-    let entities = [
-        ("&amp;", "&"),
-        ("&lt;", "<"),
-        ("&gt;", ">"),
-        ("&quot;", "\""),
-        ("&apos;", "'"),
-        ("&#39;", "'"),
-        ("&nbsp;", " "),
-        ("&ndash;", "–"),
-        ("&mdash;", "—"),
-        ("&lsquo;", "'"),
-        ("&rsquo;", "'"),
-        ("&ldquo;", "\u{201C}"),
-        ("&rdquo;", "\u{201D}"),
-        ("&hellip;", "…"),
-        ("&copy;", "©"),
-        ("&reg;", "®"),
-        ("&trade;", "™"),
-        ("&bull;", "•"),
-        ("&middot;", "·"),
-        ("&deg;", "°"),
-        ("&plusmn;", "±"),
-        ("&times;", "×"),
-        ("&divide;", "÷"),
-        ("&frac12;", "½"),
-        ("&frac14;", "¼"),
-        ("&frac34;", "¾"),
-        ("&euro;", "€"),
-        ("&pound;", "£"),
-        ("&yen;", "¥"),
-        ("&cent;", "¢"),
-    ];
-
-    for (entity, replacement) in &entities {
-        result = result.replace(entity, replacement);
+    // Fast path: no entity markers at all
+    if !s.contains('&') {
+        return s.to_string();
     }
 
-    // Handle numeric entities (decimal)
-    result = decode_numeric_entities(&result);
+    // Single-pass named entity replacement using Aho-Corasick automaton
+    let named_decoded = ENTITY_MATCHER.replace_all(s, ENTITY_REPLACEMENTS);
 
-    result
+    // Handle numeric entities (decimal and hex) - already O(n)
+    decode_numeric_entities(&named_decoded)
 }
 
 /// Decodes numeric HTML entities like &#123; and &#x7B;

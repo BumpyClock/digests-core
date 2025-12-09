@@ -597,9 +597,11 @@ dependencies = [
 name = "digests-feed"
 version = "0.1.0"
 dependencies = [
+ "aho-corasick",
  "chrono",
  "digests-hermes",
  "feed-rs",
+ "once_cell",
  "parse_duration",
  "pretty_assertions",
  "quick-xml 0.38.4",

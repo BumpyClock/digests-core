@@ -6,22 +6,15 @@
 //! This module provides functions to load custom extractors from embedded JSON data
 //! and build an `ExtractorRegistry` for domain-specific content extraction.
 
+use once_cell::sync::Lazy;
+
 use crate::extractors::custom::{CustomExtractor, ExtractorRegistry, SelectorSpec, TransformSpec};
 
 /// Embedded JSON containing the full corpus of custom extractors.
 const BUILTIN_EXTRACTORS_JSON: &str = include_str!("../../data/custom_extractors_full.json");
 
-/// Loads the builtin extractor registry from embedded JSON.
-///
-/// Parses the embedded JSON file containing custom extractor definitions and
-/// registers each extractor (including its supported domains) into a new registry.
-/// Applies post-processing to convert Noop transforms to concrete behaviors
-/// based on selector heuristics.
-///
-/// # Panics
-///
-/// Panics if the embedded JSON is malformed or cannot be deserialized.
-pub fn load_builtin_registry() -> ExtractorRegistry {
+/// Lazily initialized builtin registry. Parsed once on first access, then cached.
+static BUILTIN_REGISTRY: Lazy<ExtractorRegistry> = Lazy::new(|| {
     let extractors: Vec<CustomExtractor> =
         serde_json::from_str(BUILTIN_EXTRACTORS_JSON).expect("failed to parse builtin extractors");
 
@@ -31,6 +24,19 @@ pub fn load_builtin_registry() -> ExtractorRegistry {
         registry.register(extractor);
     }
     registry
+});
+
+/// Loads the builtin extractor registry from embedded JSON.
+///
+/// Returns a clone of the cached registry. The first call parses the embedded
+/// JSON and caches the result; subsequent calls return a clone in O(1) time
+/// (amortized over many extractions per clone).
+///
+/// # Panics
+///
+/// Panics if the embedded JSON is malformed or cannot be deserialized (on first call only).
+pub fn load_builtin_registry() -> ExtractorRegistry {
+    BUILTIN_REGISTRY.clone()
 }
 
 /// Post-processes an extractor's transforms to convert Noop variants to concrete

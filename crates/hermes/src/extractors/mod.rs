@@ -8,9 +8,11 @@
 //! and structured data (JSON-LD, OpenGraph, etc.) handling.
 //!
 //! Submodules:
+//! - `compiled`: Pre-compiled CSS selector cache.
 //! - `custom`: Custom site-specific extractors with configurable selectors.
 //! - `select`: Selector-based field extraction utilities.
 
+pub mod compiled;
 pub mod content;
 pub mod custom;
 pub mod fields;
