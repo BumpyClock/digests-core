@@ -156,6 +156,111 @@ pub fn apply_domain_function_transforms(domain: &str, html: &str) -> String {
                 youtube_iframe_transform as fn(&scraper::ElementRef) -> Option<String>,
             ));
         }
+        "deadline.com" => {
+            rules.push((
+                ".embed-twitter".into(),
+                embed_twitter_blockquote as fn(&scraper::ElementRef) -> Option<String>,
+            ));
+        }
+        "www.apartmenttherapy.com" => {
+            rules.push((
+                "div[data-render-react-id=\"images/LazyPicture\"]".into(),
+                unwrap_keep_children_fn,
+            ));
+        }
+        "news.mynavi.jp" | "www.lifehacker.jp" | "www.gizmodo.jp" => {
+            rules.push(("img".into(), img_data_src_to_src));
+        }
+        "www.cnn.com" => {
+            rules.push((
+                ".zn-body__paragraph, .el__leafmedia--sourced-paragraph".into(),
+                unwrap_keep_children_fn,
+            ));
+            rules.push((
+                ".media__video--thumbnail".into(),
+                cnn_video_thumb as fn(&scraper::ElementRef) -> Option<String>,
+            ));
+        }
+        "www.abendblatt.de" => {
+            rules.push(("div".into(), unwrap_keep_children_fn));
+            rules.push(("p".into(), unwrap_keep_children_fn));
+        }
+        "www.reuters.com" => {
+            rules.push((".article-subtitle".into(), wrap_tag_fn("h4")));
+        }
+        "www.newyorker.com" => {
+            rules.push((".caption__credit".into(), wrap_tag_fn("figcaption")));
+            rules.push((".caption__text".into(), wrap_tag_fn("figcaption")));
+        }
+        "www.npr.org" => {
+            rules.push((".bucketwrap.image".into(), wrap_tag_fn("figure")));
+            rules.push((
+                ".bucketwrap.image .credit-caption".into(),
+                wrap_tag_fn("figcaption"),
+            ));
+        }
+        "www.eonline.com" => {
+            rules.push(("div.post-content__image".into(), wrap_tag_fn("figure")));
+            rules.push((
+                "div.post-content__image .image__credits".into(),
+                wrap_tag_fn("figcaption"),
+            ));
+        }
+        "gothamist.com" => {
+            for sel in ["div.image-left", "div.image-none", "div.image-right"] {
+                rules.push((sel.into(), wrap_tag_fn("figure")));
+            }
+            for sel in [".image-left i", ".image-none i", ".image-right i"] {
+                rules.push((sel.into(), wrap_tag_fn("figcaption")));
+            }
+        }
+        "www.buzzfeed.com" => {
+            rules.push((
+                "figure.longform_custom_header_media .longform_header_image_source".into(),
+                wrap_tag_fn("figcaption"),
+            ));
+            rules.push(("h2".into(), wrap_tag_fn("b")));
+        }
+        "nymag.com" => {
+            rules.push(("h1".into(), wrap_tag_fn("h2")));
+        }
+        "www.vox.com" => {
+            rules.push(("figure .e-image__meta".into(), wrap_tag_fn("figcaption")));
+        }
+        "epaper.zeit.de" => {
+            for (sel, tag) in [
+                (".article__author", "p"),
+                ("byline", "p"),
+                ("linkbox", "p"),
+                ("p.title", "h1"),
+            ] {
+                rules.push((sel.into(), wrap_tag_fn(tag)));
+            }
+        }
+        "twitter.com" => {
+            rules.push(("s".into(), wrap_tag_fn("span")));
+        }
+        "uproxx.com" => {
+            rules.push(("div.image".into(), wrap_tag_fn("figure")));
+            rules.push(("div.image .wp-media-credit".into(), wrap_tag_fn("figcaption")));
+        }
+        "www.fool.com" => {
+            rules.push((".caption".into(), wrap_tag_fn("figcaption")));
+        }
+        "mashable.com" => {
+            rules.push((".image-credit".into(), wrap_tag_fn("figcaption")));
+        }
+        "pastebin.com" => {
+            rules.push(("li".into(), wrap_tag_fn("p")));
+            rules.push(("ol".into(), wrap_tag_fn("div")));
+        }
+        "www.washingtonpost.com" => {
+            rules.push((".pb-caption".into(), wrap_tag_fn("figcaption")));
+        }
+        "wikipedia.org" => {
+            rules.push((".infobox".into(), wrap_tag_fn("figure")));
+            rules.push((".infobox caption".into(), wrap_tag_fn("figcaption")));
+        }
         _ => {}
     }
 
@@ -272,6 +377,102 @@ fn gawker_youtube_transform(el: &scraper::ElementRef) -> Option<String> {
     youtube_iframe_transform(el)
 }
 
+fn cnn_video_thumb(el: &scraper::ElementRef) -> Option<String> {
+    // turn thumbnail into figure with img
+    if let Some(img) = el.select(&Selector::parse("img").ok()?).next() {
+        let src = img.value().attr("src").unwrap_or("");
+        if !src.is_empty() {
+            return Some(format!(r#"<figure class="media__video--thumbnail"><img src="{}"/></figure>"#, escape_attr(src)));
+        }
+    }
+    None
+}
+
+fn embed_twitter_blockquote(el: &scraper::ElementRef) -> Option<String> {
+    // Preserve inner HTML; wrap in blockquote.twitter-tweet if not already
+    let inner = el.inner_html();
+    if el.value().name().eq_ignore_ascii_case("blockquote") {
+        return Some(format!(r#"<blockquote class="twitter-tweet">{}</blockquote>"#, inner));
+    }
+    Some(format!(r#"<blockquote class="twitter-tweet">{}</blockquote>"#, inner))
+}
+
+fn img_data_src_to_src(el: &scraper::ElementRef) -> Option<String> {
+    // Copy data-src/srcset onto img
+    let mut attrs: Vec<(String, String)> =
+        el.value().attrs().map(|(k, v)| (k.to_string(), v.to_string())).collect();
+    fix_lazy_img_attrs(&mut attrs);
+    // Serialize back
+    let mut out = String::new();
+    out.push('<');
+    out.push_str(el.value().name());
+    for (k, v) in attrs {
+        out.push(' ');
+        out.push_str(&k);
+        out.push_str("=\"");
+        out.push_str(&escape_attr(&v));
+        out.push('"');
+    }
+    out.push_str(" />");
+    Some(out)
+}
+
+fn wrap_tag_fn(new_tag: &str) -> fn(&scraper::ElementRef) -> Option<String> {
+    match new_tag {
+        "h4" => wrap_tag_h4,
+        "figcaption" => wrap_tag_figcaption,
+        "figure" => wrap_tag_figure,
+        "b" => wrap_tag_b,
+        "h2" => wrap_tag_h2,
+        "p" => wrap_tag_p,
+        "h1" => wrap_tag_h1,
+        "span" => wrap_tag_span,
+        "div" => wrap_tag_div,
+        _ => wrap_tag_div,
+    }
+}
+
+macro_rules! make_wrap_fn {
+    ($fname:ident, $tag:literal) => {
+        fn $fname(el: &scraper::ElementRef) -> Option<String> {
+            Some(wrap_tag(el, $tag))
+        }
+    };
+}
+
+make_wrap_fn!(wrap_tag_h4, "h4");
+make_wrap_fn!(wrap_tag_figcaption, "figcaption");
+make_wrap_fn!(wrap_tag_figure, "figure");
+make_wrap_fn!(wrap_tag_b, "b");
+make_wrap_fn!(wrap_tag_h2, "h2");
+make_wrap_fn!(wrap_tag_p, "p");
+make_wrap_fn!(wrap_tag_h1, "h1");
+make_wrap_fn!(wrap_tag_span, "span");
+make_wrap_fn!(wrap_tag_div, "div");
+
+fn wrap_tag(el: &scraper::ElementRef, new_tag: &str) -> String {
+    let mut out = String::new();
+    out.push('<');
+    out.push_str(new_tag);
+    for (k, v) in el.value().attrs() {
+        out.push(' ');
+        out.push_str(k);
+        out.push_str("=\"");
+        out.push_str(&escape_attr(v));
+        out.push('"');
+    }
+    if is_void_element(new_tag) {
+        out.push_str(" />");
+    } else {
+        out.push('>');
+        out.push_str(&el.inner_html());
+        out.push_str("</");
+        out.push_str(new_tag);
+        out.push('>');
+    }
+    out
+}
+
 fn latimes_trb_ar_la_transform(el: &scraper::ElementRef) -> Option<String> {
     let figure_sel = Selector::parse("figure").ok()?;
     if let Some(fig) = el.select(&figure_sel).next() {
@@ -346,6 +547,11 @@ fn wrap_with_same_tag(el: &scraper::ElementRef, inner: &str) -> String {
     out.push_str(name);
     out.push('>');
     out
+}
+
+fn unwrap_keep_children_fn(el: &scraper::ElementRef) -> Option<String> {
+    // return inner HTML (unwrap the element)
+    Some(el.inner_html())
 }
 
 fn build_element_with_attr(el: &scraper::ElementRef, attr: &str, value: &str) -> String {

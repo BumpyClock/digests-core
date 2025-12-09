@@ -3,7 +3,7 @@
 ## High-priority parity gaps
 - ✅ Port Go readability scorer and sibling merge (`internal/utils/dom/score_content.go`, `findTopCandidate`, `mergeSiblings`) exactly.
 - ✅ Port Go cleaners (`clean.go`, `clean_h_ones.go`, `rewrite_top_level.go`, etc.) including negative/positive regex filters, link density penalties, sibling merge steps (implemented in `dom/cleaners.rs` + `dom/brs.rs`).
-- ☐ Implement all Go FunctionTransform cases (partially done: noscript→span, reddit role=img→img, Gawker/YouTube lazy iframes, LATimes trb_ar_la, NatGeo lead images).
+- ☐ Implement all Go FunctionTransform cases (partially done: noscript→span, reddit role=img→img, Gawker/YouTube lazy iframes, LATimes trb_ar_la, NatGeo lead images, CNN paragraphs/video thumb, apttherapy unwrap, deadline twitter embed, abendblatt unwrap, data-src/srcset fixes).
 - ✅ Match Bluemonday sanitization policy (allowed tags/attrs/protocols) with ammonia config.
 - ☐ Match turndown/markdown & text conversion rules used in Go (lists/code/link formatting).
 - ☐ Date parsing: align with go-dateparser locale/relative parsing.
