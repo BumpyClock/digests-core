@@ -40,6 +40,7 @@ pub fn sanitize_html(html: &str) -> String {
 
     builder
         .url_schemes(["http", "https", "mailto"].iter().copied().collect())
+        .url_relative(ammonia::UrlRelative::PassThrough)
         .clean(html)
         .to_string()
 }
@@ -69,8 +70,18 @@ fn collapse_newlines_to_one(text: &str) -> String {
 /// and normalizes consecutive blank lines to max 2.
 /// On conversion error, returns the original HTML string unchanged.
 pub fn html_to_markdown(html: &str) -> String {
+    // Lightly reflow to preserve paragraph/heading boundaries before conversion.
+    let spaced = Regex::new(r"</(p|div|section|article|figure|li)>")
+        .unwrap()
+        .replace_all(html, "</$1>\n\n")
+        .to_string();
+    let spaced = Regex::new(r"<(h[1-6])>")
+        .unwrap()
+        .replace_all(&spaced, "\n\n<$1>")
+        .to_string();
+
     // Preprocess: convert <br> to newlines
-    let preprocessed = preprocess_br_tags(html);
+    let preprocessed = preprocess_br_tags(&spaced);
 
     // Convert to markdown, skipping script and style tags
     let converter = htmd::HtmlToMarkdown::builder()
@@ -81,8 +92,45 @@ pub fn html_to_markdown(html: &str) -> String {
         .convert(&preprocessed)
         .unwrap_or_else(|_| preprocessed.clone());
 
+    // Post-process: convert [Image: alt url] and [Video: name] placeholders to markdown
+    let md = convert_image_placeholders(&md);
+    let md = convert_video_placeholders(&md);
+
     // Post-process: collapse more than 2 blank lines to exactly 2
     collapse_blank_lines_to_two(&md)
+}
+
+/// Convert [Image: alt text url] placeholders to proper markdown ![alt](url).
+///
+/// Some sites (like The Verge) include these placeholders in their JSON-LD
+/// structured data which may get extracted into content.
+fn convert_image_placeholders(text: &str) -> String {
+    // Match [Image: description url] where url starts with http
+    // Also handle escaped variants like \[Image: ... url\]
+    let re = Regex::new(r"\\?\[Image:\s*([^]]*?)\s+(https?://[^\s\]\\]+)\\?\s*\\?\]").unwrap();
+    re.replace_all(text, |caps: &regex::Captures| {
+        let alt = caps.get(1).map_or("", |m| m.as_str()).trim();
+        let url = caps.get(2).map_or("", |m| m.as_str()).trim_end_matches('\\');
+        format!("![{}]({})", alt, url)
+    })
+    .to_string()
+}
+
+/// Convert [Video: name] placeholders to markdown format.
+fn convert_video_placeholders(text: &str) -> String {
+    // Match [Video: name] and escaped variants like \[Video: name\]
+    // The name may contain escaped underscores like AndroidXR\_PCConnect
+    let re = Regex::new(r"\\?\[Video:\s*([^\]]+?)\\?\]").unwrap();
+    re.replace_all(text, |caps: &regex::Captures| {
+        let name = caps
+            .get(1)
+            .map_or("", |m| m.as_str())
+            .trim()
+            .replace("\\_", "_") // Unescape underscores
+            .replace("\\", ""); // Remove any remaining escapes
+        format!("*[Video: {}]*", name)
+    })
+    .to_string()
 }
 
 /// Convert HTML to plain text by extracting text nodes.

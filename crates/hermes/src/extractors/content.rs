@@ -38,6 +38,15 @@ const AD_CLASS_MARKERS: &[&str] = &["ad", "ads", "advert", "sidebar", "related",
 ///
 /// If `ce.field.allow_multiple` is false, returns only the first match.
 pub fn extract_content_html(doc: &Html, ce: &ContentExtractor) -> Option<Vec<String>> {
+    extract_content_html_opts(doc, ce, false)
+}
+
+/// Like extract_content_html, but optionally preserves tags (skips heavy cleaning) when preserve_tags=true.
+pub fn extract_content_html_opts(
+    doc: &Html,
+    ce: &ContentExtractor,
+    preserve_tags: bool,
+) -> Option<Vec<String>> {
     // Parse clean selectors upfront
     let clean_selectors: Vec<Selector> = ce
         .clean
@@ -70,6 +79,10 @@ pub fn extract_content_html(doc: &Html, ce: &ContentExtractor) -> Option<Vec<Str
         }
 
         // Found matches, extract HTML for each
+        // Note: For content extraction, we always collect ALL matches and join them,
+        // regardless of allow_multiple. This matches Go behavior where content selectors
+        // like ".duet--article--article-body-component" may match multiple elements
+        // that together form the complete article.
         let mut results = Vec::new();
         for element in &matches {
             let inner = extract_inner_html_filtered(
@@ -77,12 +90,9 @@ pub fn extract_content_html(doc: &Html, ce: &ContentExtractor) -> Option<Vec<Str
                 &clean_selectors,
                 &ce.transforms,
                 use_default_cleaner,
+                preserve_tags,
             );
             results.push(inner);
-
-            if !ce.field.allow_multiple {
-                break;
-            }
         }
 
         if !results.is_empty() {
@@ -96,6 +106,22 @@ pub fn extract_content_html(doc: &Html, ce: &ContentExtractor) -> Option<Vec<Str
 /// Convenience function that returns only the first extracted HTML string.
 pub fn extract_content_first_html(doc: &Html, ce: &ContentExtractor) -> Option<String> {
     extract_content_html(doc, ce).and_then(|v| v.into_iter().next())
+}
+
+/// Extract raw inner_html (no cleaning, no transforms) using the first matching selector.
+pub fn extract_content_raw_first_html(doc: &Html, ce: &ContentExtractor) -> Option<String> {
+    for spec in &ce.field.selectors {
+        let css = match spec {
+            SelectorSpec::Css(s) => s,
+            SelectorSpec::CssAttr(parts) if !parts.is_empty() => &parts[0],
+            _ => continue,
+        };
+        let selector = Selector::parse(css).ok()?;
+        if let Some(el) = doc.select(&selector).next() {
+            return Some(el.inner_html());
+        }
+    }
+    None
 }
 
 /// Apply domain-specific function-like transforms (ported from Go FunctionTransform)
@@ -777,9 +803,41 @@ fn extract_inner_html_filtered(
     clean_selectors: &[Selector],
     transforms: &std::collections::HashMap<String, TransformSpec>,
     use_default_cleaner: bool,
+    preserve_tags: bool,
 ) -> String {
     // Get the inner HTML as a string
     let inner_html = element.inner_html();
+
+    // Fast path: if no transforms, no cleaners, and default_cleaner is off, return as-is (post cleaners only)
+    if !use_default_cleaner && clean_selectors.is_empty() && transforms.is_empty() {
+        return apply_post_cleaners(&inner_html);
+    }
+
+    // If no transforms and no default cleaner, but there ARE clean selectors,
+    // apply a lightweight removal of those selectors while keeping all other tags.
+    if preserve_tags && !use_default_cleaner && transforms.is_empty() && !clean_selectors.is_empty() {
+        let mut frag = Html::parse_fragment(&inner_html);
+        let mut to_remove: Vec<ego_tree::NodeId> = Vec::new();
+        for selector in clean_selectors {
+            for m in frag.select(selector) {
+                to_remove.push(m.id());
+            }
+        }
+        if !to_remove.is_empty() {
+            // Remove marked nodes from the tree
+            for id in to_remove {
+                if let Some(mut node) = frag.tree.get_mut(id) {
+                    node.detach();
+                }
+            }
+        }
+        // Serialize preserving tags
+        let mut out = String::new();
+        for child in frag.root_element().children() {
+            serialize_node_preserve(child, &mut out);
+        }
+        return apply_post_cleaners(&out);
+    }
 
     // Apply transforms first (before cleaning)
     let transformed_html = if transforms.is_empty() {
@@ -1114,6 +1172,42 @@ fn serialize_node(
         _ => {
             // Skip other node types (Document, Doctype, etc.)
         }
+    }
+}
+
+/// Serialize node preserving all tags (used in lightweight clean removal path)
+fn serialize_node_preserve(node: ego_tree::NodeRef<scraper::Node>, output: &mut String) {
+    match node.value() {
+        scraper::Node::Text(text) => output.push_str(&**text),
+        scraper::Node::Element(el) => {
+            let tag_name = el.name();
+            output.push('<');
+            output.push_str(tag_name);
+            for (name, value) in el.attrs() {
+                output.push(' ');
+                output.push_str(name);
+                output.push_str("=\"");
+                output.push_str(&escape_attr(value));
+                output.push('"');
+            }
+            if is_void_element(tag_name) {
+                output.push_str(" />");
+            } else {
+                output.push('>');
+                for child in node.children() {
+                    serialize_node_preserve(child, output);
+                }
+                output.push_str("</");
+                output.push_str(tag_name);
+                output.push('>');
+            }
+        }
+        scraper::Node::Comment(c) => {
+            output.push_str("<!--");
+            output.push_str(&**c);
+            output.push_str("-->");
+        }
+        _ => {}
     }
 }
 

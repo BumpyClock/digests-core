@@ -5,7 +5,9 @@ use chrono::{DateTime, Utc};
 use scraper::{Html, Selector};
 
 use crate::error::ParseError;
-use crate::extractors::content::extract_content_first_html;
+use crate::extractors::content::{
+    extract_content_first_html, extract_content_html_opts, extract_content_raw_first_html,
+};
 #[cfg(test)]
 use crate::extractors::custom::ContentExtractor;
 use crate::extractors::custom::{ExtractorRegistry, FieldExtractor, SelectorSpec};
@@ -54,6 +56,40 @@ fn extract_body_inner_html(doc: &Html) -> String {
         }
     }
     String::new()
+}
+
+/// When we fall back to JSON-LD articleBody (plain text), wrap it into `<p>` tags
+/// so HTML/Markdown outputs retain paragraph structure.
+fn wrap_plaintext_as_html(text: &str) -> String {
+    if text.contains('<') {
+        return text.to_string();
+    }
+
+    fn escape(t: &str) -> String {
+        t.replace('&', "&amp;")
+            .replace('<', "&lt;")
+            .replace('>', "&gt;")
+    }
+
+    let mut out = String::new();
+    for block in text.split("\n\n") {
+        let trimmed = block.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        if !out.is_empty() {
+            out.push('\n');
+        }
+        out.push_str("<p>");
+        out.push_str(&escape(trimmed));
+        out.push_str("</p>");
+    }
+
+    if out.is_empty() {
+        format!("<p>{}</p>", escape(text.trim()))
+    } else {
+        out
+    }
 }
 
 /// Extract generic content using the Go-equivalent readability/scoring pipeline.
@@ -637,24 +673,38 @@ impl Client {
         // Extract content: prefer custom extractor if available, then best generic, then body
         let mut content_html = custom_extractor
             .and_then(|ce| ce.content.as_ref())
-            .and_then(|ce| extract_content_first_html(&doc, ce))
+            .and_then(|ce| extract_content_html_opts(&doc, ce, true).map(|v| v.join("\n\n")))
             .or_else(|| score_generic_content(&raw_html, &title))
             .unwrap_or_else(|| extract_body_inner_html(&doc));
+
+        // Fallback: if content contains no tags, try raw inner_html (no cleaning)
+        if !content_html.contains('<') {
+            if let Some(raw) = custom_extractor
+                .and_then(|ce| ce.content.as_ref())
+                .and_then(|ce| extract_content_raw_first_html(&doc, ce))
+            {
+                content_html = raw;
+            }
+        }
 
         // Apply domain-specific function transforms (Go FunctionTransform parity)
         content_html = crate::extractors::content::apply_domain_function_transforms(&domain, &content_html);
 
-        // Fallback: if content is too short, try JSON-LD articleBody
+        // Fallback: only use JSON-LD articleBody if we truly extracted nothing
+        // (lower threshold to avoid losing HTML formatting from proper extraction)
         let content_plain = html_to_text(&content_html);
-        if content_plain.trim().len() < 500 {
+        if content_plain.trim().len() < 50 {
             if let Some(ld_body) = extract_article_body_from_ld_json(&doc) {
-                content_html = ld_body;
+                content_html = wrap_plaintext_as_html(&ld_body);
                 _ = html_to_text(&content_html);
             }
         }
 
-        // Sanitize the extracted HTML before conversion
-        let sanitized_html = sanitize_html(&content_html);
+        // Sanitize the extracted HTML before conversion (skip for raw HTML output to preserve structure)
+        let sanitized_html = match self.opts.content_type {
+            ContentType::Html => content_html.clone(),
+            _ => sanitize_html(&content_html),
+        };
 
         // Extract author, date_published, lead_image_url
         let author = extract_author(&doc, custom_extractor.and_then(|ce| ce.author.as_ref()));
@@ -733,9 +783,18 @@ impl Client {
                                 // Extract content from next page using same pipeline
                                 let mut next_content_html = next_custom_extractor
                                     .and_then(|ce| ce.content.as_ref())
-                                    .and_then(|ce| extract_content_first_html(&next_doc, ce))
+                                    .and_then(|ce| extract_content_html_opts(&next_doc, ce, true).map(|v| v.join("\n\n")))
                                     .or_else(|| score_generic_content(&next_raw_html, &title))
                                     .unwrap_or_else(|| extract_body_inner_html(&next_doc));
+
+                                if !next_content_html.contains('<') {
+                                    if let Some(raw) = next_custom_extractor
+                                        .and_then(|ce| ce.content.as_ref())
+                                        .and_then(|ce| extract_content_raw_first_html(&next_doc, ce))
+                                    {
+                                        next_content_html = raw;
+                                    }
+                                }
 
                                 next_content_html = crate::extractors::content::apply_domain_function_transforms(&next_domain, &next_content_html);
 
@@ -892,11 +951,12 @@ impl Client {
             .or_else(|| score_generic_content(html, &title))
             .unwrap_or_else(|| extract_body_inner_html(&doc));
 
-        // Fallback: if content is too short, try JSON-LD articleBody
+        // Fallback: only use JSON-LD articleBody if we truly extracted nothing
+        // (lower threshold to avoid losing HTML formatting from proper extraction)
         let content_plain = html_to_text(&content_html);
-        if content_plain.trim().len() < 500 {
+        if content_plain.trim().len() < 50 {
             if let Some(ld_body) = extract_article_body_from_ld_json(&doc) {
-                content_html = ld_body;
+                content_html = wrap_plaintext_as_html(&ld_body);
                 _ = html_to_text(&content_html);
             }
         }

@@ -1,5 +1,5 @@
 // ABOUTME: CLI binary for the Hermes web content parser.
-// ABOUTME: Parses URLs or HTML files and outputs extracted content as JSON.
+// ABOUTME: Parses URLs or HTML files and outputs extracted content in various formats.
 
 use std::fs;
 use std::io::{self, Write};
@@ -8,7 +8,7 @@ use std::process::ExitCode;
 use std::time::Instant;
 
 use clap::Parser;
-use digests_hermes::{Client, ContentType};
+use digests_hermes::{Client, ContentType, ParseResult};
 
 #[derive(Parser, Debug)]
 #[command(name = "hermes")]
@@ -21,6 +21,10 @@ struct Args {
     /// Output file path (default: stdout)
     #[arg(short = 'o', long = "output")]
     output: Option<PathBuf>,
+
+    /// Output as JSON instead of raw content (matches Go -f json behavior)
+    #[arg(long = "json")]
+    json_output: bool,
 
     /// HTML file to parse (requires --url)
     #[arg(long = "html")]
@@ -55,6 +59,33 @@ fn parse_content_type(format: &str) -> ContentType {
     }
 }
 
+/// Format output based on whether JSON output is requested.
+///
+/// When json_output is true: outputs full JSON (like Go's -f json)
+/// When json_output is false: outputs raw content (like Go's -f html/markdown/text)
+fn format_output(results: &[ParseResult], json_output: bool) -> String {
+    if json_output {
+        // JSON output mode - serialize full result(s)
+        if results.len() == 1 {
+            serde_json::to_string_pretty(&results[0]).unwrap()
+        } else {
+            serde_json::to_string_pretty(results).unwrap()
+        }
+    } else {
+        // Raw content mode - output just the content field(s)
+        if results.len() == 1 {
+            results[0].content.clone()
+        } else {
+            // Multiple results: separate content with double newlines
+            results
+                .iter()
+                .map(|r| r.content.as_str())
+                .collect::<Vec<_>>()
+                .join("\n\n")
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() -> ExitCode {
     let args = Args::parse();
@@ -83,7 +114,7 @@ async fn main() -> ExitCode {
         .build();
 
     let start = Instant::now();
-    let mut results: Vec<serde_json::Value> = Vec::new();
+    let mut results: Vec<ParseResult> = Vec::new();
     let mut had_error = false;
 
     if let Some(html_path) = &args.html {
@@ -92,7 +123,7 @@ async fn main() -> ExitCode {
         match fs::read_to_string(html_path) {
             Ok(html_content) => match client.parse_html(&html_content, url).await {
                 Ok(result) => {
-                    results.push(serde_json::to_value(&result).unwrap());
+                    results.push(result);
                 }
                 Err(e) => {
                     eprintln!("error parsing HTML: {}", e);
@@ -109,7 +140,7 @@ async fn main() -> ExitCode {
         for url in &args.urls {
             match client.parse(url).await {
                 Ok(result) => {
-                    results.push(serde_json::to_value(&result).unwrap());
+                    results.push(result);
                 }
                 Err(e) => {
                     eprintln!("error parsing {}: {}", url, e);
@@ -123,34 +154,17 @@ async fn main() -> ExitCode {
 
     // Output results
     if !results.is_empty() {
-        let output_str = if let Some(output_path) = &args.output {
+        let output_str = format_output(&results, args.json_output);
+
+        if let Some(output_path) = &args.output {
             // Write to file
-            let json_str = if results.len() == 1 {
-                serde_json::to_string_pretty(&results[0]).unwrap()
-            } else {
-                serde_json::to_string_pretty(&results).unwrap()
-            };
-            if let Err(e) = fs::write(output_path, &json_str) {
+            if let Err(e) = fs::write(output_path, &output_str) {
                 eprintln!("error writing to {:?}: {}", output_path, e);
                 had_error = true;
             }
-            None
         } else {
             // Print to stdout
-            if results.len() == 1 {
-                Some(serde_json::to_string_pretty(&results[0]).unwrap())
-            } else {
-                // Multiple results: one JSON object per line
-                let lines: Vec<String> = results
-                    .iter()
-                    .map(|r| serde_json::to_string_pretty(r).unwrap())
-                    .collect();
-                Some(lines.join("\n"))
-            }
-        };
-
-        if let Some(s) = output_str {
-            println!("{}", s);
+            println!("{}", output_str);
         }
     }
 
