@@ -1408,6 +1408,45 @@ fn fix_lazy_img_attrs(attrs: &mut Vec<(String, String)>) {
     }
 }
 
+// Similar to fix_lazy_img_attrs but for <source> elements in <picture>/<video>
+fn fix_lazy_source_attrs(attrs: &mut Vec<(String, String)>) {
+    let mut src = None;
+    let mut srcset = None;
+
+    for (k, v) in attrs.iter() {
+        let kl = k.to_lowercase();
+        if v.is_empty() {
+            continue;
+        }
+        match kl.as_str() {
+            "src" => src = Some(v.clone()),
+            "srcset" => srcset = Some(v.clone()),
+            "data-src" | "data-original" | "data-lazy" | "data-lazy-src" | "data-url" => {
+                if src.is_none() {
+                    src = Some(v.clone());
+                }
+            }
+            "data-srcset" | "data-src-set" | "data-original-set" => {
+                if srcset.is_none() {
+                    srcset = Some(v.clone());
+                }
+            }
+            _ => {}
+        }
+    }
+
+    if let Some(s) = src {
+        if !attrs.iter().any(|(k, _)| k.eq_ignore_ascii_case("src")) {
+            attrs.push(("src".into(), s));
+        }
+    }
+    if let Some(s) = srcset {
+        if !attrs.iter().any(|(k, _)| k.eq_ignore_ascii_case("srcset")) {
+            attrs.push(("srcset".into(), s));
+        }
+    }
+}
+
 fn fix_lazy_anchor_attrs(attrs: &mut Vec<(String, String)>) {
     let mut href = None;
     for (k, v) in attrs.iter() {
