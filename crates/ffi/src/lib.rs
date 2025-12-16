@@ -6,14 +6,13 @@ use std::ptr;
 
 use bumpalo::Bump;
 use digests_feed::{
-    apply_metadata_to_feed, enrich_items_with_metadata, parse_feed_bytes, Author as FAuthor,
-    Enclosure as FEnclosure, Feed as FFeed, FeedItem as FFeedItem,
+    apply_metadata_to_feed, enrich_items_with_metadata, parse_feed_bytes, pick_site_url,
+    Author as FAuthor, Enclosure as FEnclosure, Feed as FFeed, FeedItem as FFeedItem,
 };
 use digests_hermes::{
     extract_metadata_only, extract_reader_sync, ErrorCode, Metadata, ReaderResult,
 };
 use reqwest::blocking::Client as HttpClient;
-use url::Url;
 
 /// FFI version constant for ABI compatibility checking.
 pub const DIGESTS_FFI_VERSION: u32 = 1;
@@ -224,21 +223,6 @@ pub struct DFeedArena {
 fn fetch_html(client: &HttpClient, url: &str) -> Result<String, reqwest::Error> {
     let resp = client.get(url).send()?.error_for_status()?;
     resp.text()
-}
-
-fn pick_site_url(feed: &FFeed) -> Option<String> {
-    if !feed.home_url.is_empty() {
-        return Some(feed.home_url.clone());
-    }
-    if !feed.feed_url.is_empty() {
-        if let Ok(parsed) = Url::parse(&feed.feed_url) {
-            if let Some(host) = parsed.host_str() {
-                return Some(format!("{}://{}", parsed.scheme(), host));
-            }
-        }
-        return Some(feed.feed_url.clone());
-    }
-    None
 }
 
 // ----------------------------------------------------------------------------

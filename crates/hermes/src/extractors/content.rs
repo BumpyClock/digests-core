@@ -652,7 +652,6 @@ fn build_element_with_attr(el: &Selection, attr: &str, value: &str) -> String {
     out
 }
 
-
 /// Applies default content cleaning to an HTML fragment.
 ///
 /// Performs the following cleaning steps:

@@ -338,11 +338,16 @@ fn map_entry(
             .as_ref()
             .map(|t| t.content.clone())
             .unwrap_or_default(),
-        url: item_url,
+        url: item_url.clone(),
         image_url,
         summary,
         content,
-        guid: entry.id.clone(),
+        // Go parity: fall back to item URL when GUID is missing/empty
+        guid: if entry.id.is_empty() {
+            item_url.clone()
+        } else {
+            entry.id.clone()
+        },
         language,
         feed_type: feed_type.to_string(),
         published_ms,

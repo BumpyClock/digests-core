@@ -7,22 +7,21 @@ use once_cell::sync::Lazy;
 /// Named HTML entities to decode (patterns for Aho-Corasick automaton).
 const ENTITY_PATTERNS: &[&str] = &[
     "&amp;", "&lt;", "&gt;", "&quot;", "&apos;", "&#39;", "&nbsp;", "&ndash;", "&mdash;",
-    "&lsquo;", "&rsquo;", "&ldquo;", "&rdquo;", "&hellip;", "&copy;", "&reg;", "&trade;",
-    "&bull;", "&middot;", "&deg;", "&plusmn;", "&times;", "&divide;", "&frac12;", "&frac14;",
-    "&frac34;", "&euro;", "&pound;", "&yen;", "&cent;",
+    "&lsquo;", "&rsquo;", "&ldquo;", "&rdquo;", "&hellip;", "&copy;", "&reg;", "&trade;", "&bull;",
+    "&middot;", "&deg;", "&plusmn;", "&times;", "&divide;", "&frac12;", "&frac14;", "&frac34;",
+    "&euro;", "&pound;", "&yen;", "&cent;",
 ];
 
 /// Replacement strings for each entity (must match order of ENTITY_PATTERNS).
 const ENTITY_REPLACEMENTS: &[&str] = &[
-    "&", "<", ">", "\"", "'", "'", " ", "–", "—", "'", "'", "\u{201C}", "\u{201D}", "…", "©",
-    "®", "™", "•", "·", "°", "±", "×", "÷", "½", "¼", "¾", "€", "£", "¥", "¢",
+    "&", "<", ">", "\"", "'", "'", " ", "–", "—", "'", "'", "\u{201C}", "\u{201D}", "…", "©", "®",
+    "™", "•", "·", "°", "±", "×", "÷", "½", "¼", "¾", "€", "£", "¥", "¢",
 ];
 
 /// Aho-Corasick automaton for single-pass HTML entity replacement.
 /// Compiled once at first use, then reused for all subsequent calls.
-static ENTITY_MATCHER: Lazy<AhoCorasick> = Lazy::new(|| {
-    AhoCorasick::new(ENTITY_PATTERNS).expect("failed to build entity matcher")
-});
+static ENTITY_MATCHER: Lazy<AhoCorasick> =
+    Lazy::new(|| AhoCorasick::new(ENTITY_PATTERNS).expect("failed to build entity matcher"));
 
 /// Strips HTML tags from a string, returning plain text.
 /// This is a naive implementation that removes angle-bracketed content.

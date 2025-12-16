@@ -466,7 +466,6 @@ fn escape_attr(s: &str) -> String {
         .replace('>', "&gt;")
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

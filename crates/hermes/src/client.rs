@@ -4,6 +4,7 @@
 use chrono::{DateTime, Utc};
 use dom_query::Document;
 
+use crate::dom::brs::brs_to_ps_inplace;
 use crate::error::ParseError;
 use crate::extractors::content::{
     extract_content_first_html, extract_content_html_opts, extract_content_raw_first_html,
@@ -23,7 +24,6 @@ use crate::formats::{
 use crate::options::{ClientBuilder, ContentType, Options};
 use crate::resource::{fetch, FetchOptions};
 use crate::result::{word_count, ParseResult};
-use crate::dom::brs::brs_to_ps_inplace;
 #[cfg(test)]
 use std::collections::HashMap;
 use std::net::ToSocketAddrs;

@@ -7,11 +7,10 @@ use std::path::PathBuf;
 
 use anyhow::{anyhow, bail, Result};
 use clap::Parser;
-use digests_feed::{apply_metadata_to_feed, enrich_items_with_metadata, parse_feed_bytes};
+use digests_feed::{apply_metadata_to_feed, enrich_items_with_metadata, parse_feed_bytes, pick_site_url};
 use digests_hermes::extract_metadata_only;
 use reqwest::blocking::Client;
 use serde_json::json;
-use url::Url;
 
 /// Parse one or more RSS/Atom feeds and output JSON.
 #[derive(Parser, Debug)]
@@ -139,20 +138,4 @@ fn load_bytes(target: &str) -> Result<Vec<u8>> {
 fn fetch_url(client: &Client, url: &str) -> Result<String> {
     let resp = client.get(url).send()?.error_for_status()?;
     Ok(resp.text()?)
-}
-
-fn pick_site_url(feed: &digests_feed::Feed) -> Option<String> {
-    if !feed.home_url.is_empty() {
-        Some(feed.home_url.clone())
-    } else if !feed.feed_url.is_empty() {
-        if let Ok(parsed) = Url::parse(&feed.feed_url) {
-            if let Some(host) = parsed.host_str() {
-                let base = format!("{}://{}", parsed.scheme(), host);
-                return Some(base);
-            }
-        }
-        Some(feed.feed_url.clone())
-    } else {
-        None
-    }
 }
