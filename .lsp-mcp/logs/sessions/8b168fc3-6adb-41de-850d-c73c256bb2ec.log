@@ -1,0 +1,616 @@
+2026-01-03T18:55:32.374497Z  INFO lsp_mcp: LSP-MCP server starting with debug logging session_id=8b168fc3-6adb-41de-850d-c73c256bb2ec log_file=/Users/adityasharma/Projects/digests-core/.lsp-mcp/logs/sessions/8b168fc3-6adb-41de-850d-c73c256bb2ec.log workspace=/Users/adityasharma/Projects/digests-core
+2026-01-03T18:55:32.378821Z  INFO lsproxy::config::loaders: Loaded global config from ~/.lsp-mcp/.lsp-mcp.json
+2026-01-03T18:55:32.378867Z  INFO lsproxy: Config loaded: 0 languages, 12 tools enabled
+2026-01-03T18:55:32.385194Z  INFO lsproxy::mcp::server: Initializing semantic search manager...
+2026-01-03T18:55:32.385798Z  INFO lsproxy::mcp::server: Starting MCP server with 12 tools enabled (preset: Full)
+2026-01-03T18:55:32.386245Z  INFO rmcp::handler::server: client initialized
+2026-01-03T18:55:32.386285Z  INFO serve_inner: rmcp::service: Service initialized as server peer_info=Some(InitializeRequestParam { protocol_version: ProtocolVersion("2025-06-18"), capabilities: ClientCapabilities { experimental: None, roots: None, sampling: None, elicitation: Some(ElicitationCapability { schema_validation: None }) }, client_info: Implementation { name: "codex-mcp-client", title: Some("Codex"), version: "0.77.0", icons: None, website_url: None } })
+2026-01-03T18:55:32.386401Z DEBUG serve_inner: rmcp::service: received request id=1 request=ListToolsRequest(RequestOptionalParam { method: ListToolsRequestMethod, params: Some(PaginatedRequestParam { cursor: None }), extensions: Extensions })
+2026-01-03T18:55:32.386529Z DEBUG serve_inner: rmcp::service: response message id=1 result=ListToolsResult(ListToolsResult { meta: None, next_cursor: None, tools: [Tool { name: "goToImplementation", title: None, description: Some("Implementation at position; use for interface/trait impls"), input_schema: {"properties": Object {"character": Object {"type": String("integer")}, "line": Object {"type": String("integer")}, "path": Object {"type": String("string")}}, "required": Array [String("path"), String("line"), String("character")], "type": String("object")}, output_schema: None, annotations: None, icons: None, meta: None }, Tool { name: "findIdentifier", title: None, description: Some("Identifier occurrences in a file; use for local search"), input_schema: {"properties": Object {"character": Object {"type": String("integer")}, "limit": Object {"type": String("integer")}, "line": Object {"type": String("integer")}, "name": Object {"type": String("string")}, "offset": Object {"type": String("integer")}, "path": Object {"type": String("string")}}, "required": Array [String("path"), String("name")], "type": String("object")}, output_schema: None, annotations: None, icons: None, meta: None }, Tool { name: "workspaceSymbol", title: None, description: Some("Search symbols by name; use to locate definitions"), input_schema: {"properties": Object {"context_lines": Object {"type": String("integer")}, "exact": Object {"type": String("boolean")}, "limit": Object {"type": String("integer")}, "offset": Object {"type": String("integer")}, "query": Object {"type": String("string")}}, "required": Array [String("query")], "type": String("object")}, output_schema: None, annotations: None, icons: None, meta: None }, Tool { name: "findReferences", title: None, description: Some("References to a symbol by name; use to see usages"), input_schema: {"properties": Object {"context_lines": Object {"type": String("integer")}, "limit": Object {"type": String("integer")}, "offset": Object {"type": String("integer")}, "path": Object {"type": String("string")}, "symbol": Object {"type": String("string")}}, "required": Array [String("symbol")], "type": String("object")}, output_schema: None, annotations: None, icons: None, meta: None }, Tool { name: "semanticSearch", title: None, description: Some("Semantic code search; use descriptive natural language queries (not keywords)"), input_schema: {"properties": Object {"context_lines": Object {"type": String("integer")}, "exclude": Object {"items": Object {"type": String("string")}, "type": String("array")}, "file_pattern": Object {"items": Object {"type": String("string")}, "type": String("array")}, "limit": Object {"type": String("integer")}, "min_score": Object {"type": String("number")}, "path": Object {"type": String("string")}, "per_file": Object {"type": String("boolean")}, "query": Object {"type": String("string")}, "rerank": Object {"type": String("boolean")}}, "required": Array [String("query")], "type": String("object")}, output_schema: None, annotations: None, icons: None, meta: None }, Tool { name: "getDiagnostics", title: None, description: Some("Diagnostics for file/workspace; use for errors and warnings"), input_schema: {"properties": Object {"file_path": Object {"type": String("string")}}, "type": String("object")}, output_schema: None, annotations: None, icons: None, meta: None }, Tool { name: "findReferencedSymbols", title: None, description: Some("Symbols referenced by definition; use to see deps"), input_schema: {"properties": Object {"character": Object {"type": String("integer")}, "externals": Object {"type": String("boolean")}, "full_scan": Object {"type": String("boolean")}, "line": Object {"type": String("integer")}, "path": Object {"type": String("string")}}, "required": Array [String("path"), String("line"), String("character")], "type": String("object")}, output_schema: None, annotations: None, icons: None, meta: None }, Tool { name: "hover", title: None, description: Some("Type/doc info at position; use for quick context"), input_schema: {"properties": Object {"include_definition": Object {"type": String("boolean")}, "requests": Object {"type": String("string")}}, "required": Array [String("requests")], "type": String("object")}, output_schema: None, annotations: None, icons: None, meta: None }, Tool { name: "health", title: None, description: Some("Service status; use to check logs/session"), input_schema: {"type": String("object")}, output_schema: None, annotations: None, icons: None, meta: None }, Tool { name: "documentSymbol", title: None, description: Some("Symbols defined in a file; use to outline structure"), input_schema: {"properties": Object {"context_lines": Object {"type": String("integer")}, "include_children": Object {"type": String("boolean")}, "include_locals": Object {"type": String("boolean")}, "limit": Object {"type": String("integer")}, "offset": Object {"type": String("integer")}, "path": Object {"type": String("string")}}, "required": Array [String("path")], "type": String("object")}, output_schema: None, annotations: None, icons: None, meta: None }, Tool { name: "goToDefinition", title: None, description: Some("Definition at position; use to jump to source"), input_schema: {"properties": Object {"character": Object {"type": String("integer")}, "limit": Object {"type": String("integer")}, "line": Object {"type": String("integer")}, "offset": Object {"type": String("integer")}, "path": Object {"type": String("string")}}, "required": Array [String("path"), String("line"), String("character")], "type": String("object")}, output_schema: None, annotations: None, icons: None, meta: None }, Tool { name: "callHierarchy", title: None, description: Some("Call hierarchy at position; use to trace call flow"), input_schema: {"properties": Object {"character": Object {"type": String("integer")}, "context_lines": Object {"type": String("integer")}, "direction": Object {"type": String("string")}, "externals": Object {"type": String("boolean")}, "line": Object {"type": String("integer")}, "path": Object {"type": String("string")}}, "required": Array [String("path"), String("line"), String("character"), String("direction")], "type": String("object")}, output_schema: None, annotations: None, icons: None, meta: None }] })
+2026-01-03T18:55:32.430732Z  INFO hnsw_rs::hnsw: Hnsw max_nb_connection 16
+2026-01-03T18:55:32.430748Z  INFO hnsw_rs::hnsw: Hnsw nb elements 50000
+2026-01-03T18:55:32.430752Z  INFO hnsw_rs::hnsw: Hnsw ef_construction 200
+2026-01-03T18:55:32.430757Z  INFO hnsw_rs::hnsw: Hnsw distance "anndists::dist::distances::DistCosine"
+2026-01-03T18:55:32.430762Z  INFO hnsw_rs::hnsw: Hnsw extend candidates false
+2026-01-03T18:55:32.432492Z  INFO hnsw_rs::hnsw: Hnsw max_nb_connection 16
+2026-01-03T18:55:32.432512Z  INFO hnsw_rs::hnsw: Hnsw nb elements 50000
+2026-01-03T18:55:32.432517Z  INFO hnsw_rs::hnsw: Hnsw ef_construction 200
+2026-01-03T18:55:32.432524Z  INFO hnsw_rs::hnsw: Hnsw distance "anndists::dist::distances::DistCosine"
+2026-01-03T18:55:32.432529Z  INFO hnsw_rs::hnsw: Hnsw extend candidates false
+2026-01-03T18:55:32.432543Z  INFO hnsw_rs::hnsw: entering PointIndexation drop
+2026-01-03T18:55:32.432887Z DEBUG hnsw_rs::hnsw: clearing self.points_by_layer...
+2026-01-03T18:55:32.432907Z DEBUG hnsw_rs::hnsw: exiting PointIndexation drop
+2026-01-03T18:55:32.432916Z  INFO hnsw_rs::hnsw:  drop sys time(s) 0 cpu time 0
+2026-01-03T18:55:32.468445Z  INFO lsproxy::semantic_search::watcher: Started semantic search file watcher
+2026-01-03T18:55:32.469473Z DEBUG ignore::gitignore: opened gitignore file: /Users/adityasharma/.config/git/ignore
+2026-01-03T18:55:32.470065Z DEBUG globset: built glob set; 1 literals, 0 basenames, 0 extensions, 0 prefixes, 255 suffixes, 0 required extensions, 0 regexes
+2026-01-03T18:55:32.470741Z DEBUG ignore::gitignore: opened gitignore file: /Users/adityasharma/Projects/digests-core/.gitignore
+2026-01-03T18:55:32.470800Z DEBUG globset: glob `Glob("**/*~")` converted to regex: `"(?-u)^(?:/?|.*/)[^/]*\\~$"`
+2026-01-03T18:55:32.470820Z DEBUG globset: built glob set; 3 literals, 5 basenames, 4 extensions, 0 prefixes, 0 suffixes, 1 required extensions, 1 regexes
+2026-01-03T18:55:32.477582Z DEBUG ignore::gitignore: opened gitignore file: /Users/adityasharma/Projects/digests-core/.git/info/exclude
+2026-01-03T18:55:32.505484Z DEBUG ignore::walk: ignoring /Users/adityasharma/Projects/digests-core/target: Ignore(IgnoreMatch(Gitignore(Glob { from: Some("/Users/adityasharma/Projects/digests-core/.gitignore"), original: "/target/", actual: "target", is_whitelist: false, is_only_dir: true })))
+2026-01-03T18:55:32.505888Z DEBUG ignore::walk: ignoring /Users/adityasharma/Projects/digests-core/.serena: Ignore(IgnoreMatch(Hidden))
+2026-01-03T18:55:32.506613Z DEBUG ignore::gitignore: opened gitignore file: /Users/adityasharma/Projects/digests-core/.serena/.gitignore
+2026-01-03T18:55:32.506656Z DEBUG globset: built glob set; 1 literals, 0 basenames, 0 extensions, 0 prefixes, 0 suffixes, 0 required extensions, 0 regexes
+2026-01-03T18:55:32.506942Z DEBUG ignore::walk: ignoring /Users/adityasharma/Projects/digests-core/.claude: Ignore(IgnoreMatch(Hidden))
+2026-01-03T18:55:32.506982Z DEBUG ignore::walk: ignoring /Users/adityasharma/Projects/digests-core/Cargo.lock: Ignore(IgnoreMatch(Gitignore(Glob { from: Some("/Users/adityasharma/Projects/digests-core/.gitignore"), original: "Cargo.lock", actual: "**/Cargo.lock", is_whitelist: false, is_only_dir: false })))
+2026-01-03T18:55:32.508522Z DEBUG ignore::walk: ignoring /Users/adityasharma/Projects/digests-core/.ai_agents: Ignore(IgnoreMatch(Hidden))
+2026-01-03T18:55:32.508561Z DEBUG ignore::walk: ignoring /Users/adityasharma/Projects/digests-core/.gitignore: Ignore(IgnoreMatch(Hidden))
+2026-01-03T18:55:32.510117Z DEBUG ignore::walk: ignoring /Users/adityasharma/Projects/digests-core/.lsp-mcp: Ignore(IgnoreMatch(Hidden))
+2026-01-03T18:55:32.511324Z DEBUG ignore::walk: ignoring /Users/adityasharma/Projects/digests-core/.git: Ignore(IgnoreMatch(Hidden))
+2026-01-03T18:55:32.513178Z  INFO lsproxy::semantic_search::indexer: Starting semantic indexing files=44
+2026-01-03T18:55:32.613092Z DEBUG reqwest::connect: starting new connection: https://api.openai.com/
+2026-01-03T18:55:32.613244Z DEBUG reqwest::connect: starting new connection: https://api.openai.com/
+2026-01-03T18:55:32.613342Z DEBUG reqwest::connect: starting new connection: https://api.openai.com/
+2026-01-03T18:55:32.622390Z DEBUG hyper_util::client::legacy::connect::http: connecting to 162.159.140.245:443
+2026-01-03T18:55:32.622589Z DEBUG hyper_util::client::legacy::connect::http: connecting to 162.159.140.245:443
+2026-01-03T18:55:32.622645Z DEBUG hyper_util::client::legacy::connect::http: connecting to 162.159.140.245:443
+2026-01-03T18:55:32.639151Z DEBUG hyper_util::client::legacy::connect::http: connected to 162.159.140.245:443
+2026-01-03T18:55:32.639957Z DEBUG hyper_util::client::legacy::connect::http: connected to 162.159.140.245:443
+2026-01-03T18:55:32.640008Z DEBUG hyper_util::client::legacy::connect::http: connected to 162.159.140.245:443
+2026-01-03T18:55:32.934585Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:32.934718Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:32.979149Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:32.979213Z  WARN lsproxy::semantic_search::enrichment: Enrichment batch failed error=Unsupported value: 'temperature' does not support 0.0 with this model. Only the default (1) value is supported.
+2026-01-03T18:55:32.979224Z  WARN lsproxy::semantic_search::enrichment: Enrichment batch failed error=Unsupported value: 'temperature' does not support 0.0 with this model. Only the default (1) value is supported.
+2026-01-03T18:55:32.979229Z  WARN lsproxy::semantic_search::enrichment: Enrichment batch failed error=Unsupported value: 'temperature' does not support 0.0 with this model. Only the default (1) value is supported.
+2026-01-03T18:55:32.979392Z DEBUG reqwest::connect: starting new connection: https://api.openai.com/
+2026-01-03T18:55:32.981552Z DEBUG hyper_util::client::legacy::connect::http: connecting to 162.159.140.245:443
+2026-01-03T18:55:33.011116Z DEBUG hyper_util::client::legacy::connect::http: connected to 162.159.140.245:443
+2026-01-03T18:55:34.213852Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:34.218936Z DEBUG lsproxy::semantic_search::embedder::batch: Processed embedding batch provider=openai batch=60 total=82
+2026-01-03T18:55:34.219031Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:34.998949Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:35.000427Z DEBUG lsproxy::semantic_search::embedder::batch: Processed embedding batch provider=openai batch=82 total=82
+2026-01-03T18:55:35.007159Z DEBUG hnsw_rs::hnsw: Hnsw  , inserting  entry point PointId(0, 0) 
+2026-01-03T18:55:35.047482Z DEBUG hnsw_rs::hnsw: Hnsw  , inserting  entry point PointId(1, 0) 
+2026-01-03T18:55:35.047493Z DEBUG hnsw_rs::hnsw: PointIndexation insert setting max level from 0 to 1
+2026-01-03T18:55:35.467456Z DEBUG lsproxy::semantic_search::indexer: Indexed batch chunks=82
+2026-01-03T18:55:35.474152Z  INFO hnsw_rs::api: In Hnsw::file_dump
+2026-01-03T18:55:35.474169Z  INFO hnsw_rs::hnswio: Dumping with (unique) basename : vectors
+2026-01-03T18:55:35.475808Z DEBUG hnsw_rs::hnswio: dump  obtained typename "f32"
+2026-01-03T18:55:35.475832Z  INFO hnsw_rs::hnswio: in dump of description
+2026-01-03T18:55:35.475837Z  INFO hnsw_rs::hnswio: dumping ef 200
+2026-01-03T18:55:35.475842Z  INFO hnsw_rs::hnswio: dumping nb point 82
+2026-01-03T18:55:35.475848Z  INFO hnsw_rs::hnswio: dumping dimension of data 1536
+2026-01-03T18:55:35.475854Z  INFO hnsw_rs::hnswio: distance name "anndists::dist::distances::DistCosine" 
+2026-01-03T18:55:35.475859Z  INFO hnsw_rs::hnswio: T name "f32" 
+2026-01-03T18:55:35.475867Z DEBUG hnsw_rs::hnswio: dumping layer 0, nb_point 74
+2026-01-03T18:55:35.476544Z DEBUG hnsw_rs::hnswio: dumping layer 1, nb_point 8
+2026-01-03T18:55:35.476623Z DEBUG hnsw_rs::hnswio: dumping layer 2, nb_point 0
+2026-01-03T18:55:35.476628Z DEBUG hnsw_rs::hnswio: dumping layer 3, nb_point 0
+2026-01-03T18:55:35.476632Z DEBUG hnsw_rs::hnswio: dumping layer 4, nb_point 0
+2026-01-03T18:55:35.476636Z DEBUG hnsw_rs::hnswio: dumping layer 5, nb_point 0
+2026-01-03T18:55:35.476650Z DEBUG hnsw_rs::hnswio: dumping layer 6, nb_point 0
+2026-01-03T18:55:35.476655Z DEBUG hnsw_rs::hnswio: dumping layer 7, nb_point 0
+2026-01-03T18:55:35.476658Z DEBUG hnsw_rs::hnswio: dumping layer 8, nb_point 0
+2026-01-03T18:55:35.476662Z DEBUG hnsw_rs::hnswio: dumping layer 9, nb_point 0
+2026-01-03T18:55:35.476671Z DEBUG hnsw_rs::hnswio: dumping layer 10, nb_point 0
+2026-01-03T18:55:35.476675Z DEBUG hnsw_rs::hnswio: dumping layer 11, nb_point 0
+2026-01-03T18:55:35.476680Z DEBUG hnsw_rs::hnswio: dumping layer 12, nb_point 0
+2026-01-03T18:55:35.476684Z DEBUG hnsw_rs::hnswio: dumping layer 13, nb_point 0
+2026-01-03T18:55:35.476688Z DEBUG hnsw_rs::hnswio: dumping layer 14, nb_point 0
+2026-01-03T18:55:35.476692Z DEBUG hnsw_rs::hnswio: dumping layer 15, nb_point 0
+2026-01-03T18:55:35.476699Z  INFO hnsw_rs::hnswio: dumped entry_point origin_d 3, p_id PointId(1, 0) 
+2026-01-03T18:55:35.476717Z  INFO hnsw_rs::api: 
+ End of dump, file basename : vectors
+
+2026-01-03T18:55:35.672963Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:35.673117Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:35.673224Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:35.804864Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:35.807768Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:35.866238Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:35.866325Z  WARN lsproxy::semantic_search::enrichment: Enrichment batch failed error=Unsupported value: 'temperature' does not support 0.0 with this model. Only the default (1) value is supported.
+2026-01-03T18:55:35.866374Z  WARN lsproxy::semantic_search::enrichment: Enrichment batch failed error=Unsupported value: 'temperature' does not support 0.0 with this model. Only the default (1) value is supported.
+2026-01-03T18:55:35.866390Z  WARN lsproxy::semantic_search::enrichment: Enrichment batch failed error=Unsupported value: 'temperature' does not support 0.0 with this model. Only the default (1) value is supported.
+2026-01-03T18:55:35.866725Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:36.975068Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:36.978771Z DEBUG lsproxy::semantic_search::embedder::batch: Processed embedding batch provider=openai batch=60 total=71
+2026-01-03T18:55:36.978860Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:37.652286Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:37.652938Z DEBUG lsproxy::semantic_search::embedder::batch: Processed embedding batch provider=openai batch=71 total=71
+2026-01-03T18:55:38.027465Z DEBUG lsproxy::semantic_search::indexer: Indexed batch chunks=71
+2026-01-03T18:55:38.060570Z  INFO hnsw_rs::api: In Hnsw::file_dump
+2026-01-03T18:55:38.060597Z  INFO hnsw_rs::hnswio: Dumping with (unique) basename : vectors
+2026-01-03T18:55:38.063001Z DEBUG hnsw_rs::hnswio: dump  obtained typename "f32"
+2026-01-03T18:55:38.063024Z  INFO hnsw_rs::hnswio: in dump of description
+2026-01-03T18:55:38.063030Z  INFO hnsw_rs::hnswio: dumping ef 200
+2026-01-03T18:55:38.063034Z  INFO hnsw_rs::hnswio: dumping nb point 153
+2026-01-03T18:55:38.063039Z  INFO hnsw_rs::hnswio: dumping dimension of data 1536
+2026-01-03T18:55:38.063044Z  INFO hnsw_rs::hnswio: distance name "anndists::dist::distances::DistCosine" 
+2026-01-03T18:55:38.063049Z  INFO hnsw_rs::hnswio: T name "f32" 
+2026-01-03T18:55:38.063054Z DEBUG hnsw_rs::hnswio: dumping layer 0, nb_point 143
+2026-01-03T18:55:38.064156Z DEBUG hnsw_rs::hnswio: dumping layer 1, nb_point 10
+2026-01-03T18:55:38.064215Z DEBUG hnsw_rs::hnswio: dumping layer 2, nb_point 0
+2026-01-03T18:55:38.064219Z DEBUG hnsw_rs::hnswio: dumping layer 3, nb_point 0
+2026-01-03T18:55:38.064223Z DEBUG hnsw_rs::hnswio: dumping layer 4, nb_point 0
+2026-01-03T18:55:38.064226Z DEBUG hnsw_rs::hnswio: dumping layer 5, nb_point 0
+2026-01-03T18:55:38.064235Z DEBUG hnsw_rs::hnswio: dumping layer 6, nb_point 0
+2026-01-03T18:55:38.064239Z DEBUG hnsw_rs::hnswio: dumping layer 7, nb_point 0
+2026-01-03T18:55:38.064243Z DEBUG hnsw_rs::hnswio: dumping layer 8, nb_point 0
+2026-01-03T18:55:38.064247Z DEBUG hnsw_rs::hnswio: dumping layer 9, nb_point 0
+2026-01-03T18:55:38.064251Z DEBUG hnsw_rs::hnswio: dumping layer 10, nb_point 0
+2026-01-03T18:55:38.064255Z DEBUG hnsw_rs::hnswio: dumping layer 11, nb_point 0
+2026-01-03T18:55:38.064258Z DEBUG hnsw_rs::hnswio: dumping layer 12, nb_point 0
+2026-01-03T18:55:38.064261Z DEBUG hnsw_rs::hnswio: dumping layer 13, nb_point 0
+2026-01-03T18:55:38.064265Z DEBUG hnsw_rs::hnswio: dumping layer 14, nb_point 0
+2026-01-03T18:55:38.064268Z DEBUG hnsw_rs::hnswio: dumping layer 15, nb_point 0
+2026-01-03T18:55:38.064274Z  INFO hnsw_rs::hnswio: dumped entry_point origin_d 3, p_id PointId(1, 0) 
+2026-01-03T18:55:38.064286Z  INFO hnsw_rs::api: 
+ End of dump, file basename : vectors
+
+2026-01-03T18:55:38.201071Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:38.201244Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:38.201345Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:38.330997Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:38.348873Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:38.374613Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:38.374621Z  WARN lsproxy::semantic_search::enrichment: Enrichment batch failed error=Unsupported value: 'temperature' does not support 0.0 with this model. Only the default (1) value is supported.
+2026-01-03T18:55:38.374671Z  WARN lsproxy::semantic_search::enrichment: Enrichment batch failed error=Unsupported value: 'temperature' does not support 0.0 with this model. Only the default (1) value is supported.
+2026-01-03T18:55:38.374682Z  WARN lsproxy::semantic_search::enrichment: Enrichment batch failed error=Unsupported value: 'temperature' does not support 0.0 with this model. Only the default (1) value is supported.
+2026-01-03T18:55:38.374874Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:39.877721Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:39.881112Z DEBUG lsproxy::semantic_search::embedder::batch: Processed embedding batch provider=openai batch=60 total=94
+2026-01-03T18:55:39.881275Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:40.738578Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:40.741568Z DEBUG lsproxy::semantic_search::embedder::batch: Processed embedding batch provider=openai batch=94 total=94
+2026-01-03T18:55:41.374038Z DEBUG hnsw_rs::hnsw: Hnsw  , inserting  entry point PointId(2, 0) 
+2026-01-03T18:55:41.374062Z DEBUG hnsw_rs::hnsw: PointIndexation insert setting max level from 1 to 2
+2026-01-03T18:55:41.711041Z DEBUG lsproxy::semantic_search::indexer: Indexed batch chunks=94
+2026-01-03T18:55:41.734155Z  INFO hnsw_rs::api: In Hnsw::file_dump
+2026-01-03T18:55:41.734170Z  INFO hnsw_rs::hnswio: Dumping with (unique) basename : vectors
+2026-01-03T18:55:41.735273Z DEBUG hnsw_rs::hnswio: dump  obtained typename "f32"
+2026-01-03T18:55:41.735284Z  INFO hnsw_rs::hnswio: in dump of description
+2026-01-03T18:55:41.735290Z  INFO hnsw_rs::hnswio: dumping ef 200
+2026-01-03T18:55:41.735296Z  INFO hnsw_rs::hnswio: dumping nb point 247
+2026-01-03T18:55:41.735302Z  INFO hnsw_rs::hnswio: dumping dimension of data 1536
+2026-01-03T18:55:41.735310Z  INFO hnsw_rs::hnswio: distance name "anndists::dist::distances::DistCosine" 
+2026-01-03T18:55:41.735317Z  INFO hnsw_rs::hnswio: T name "f32" 
+2026-01-03T18:55:41.735343Z DEBUG hnsw_rs::hnswio: dumping layer 0, nb_point 228
+2026-01-03T18:55:41.736682Z DEBUG hnsw_rs::hnswio: dumping layer 1, nb_point 18
+2026-01-03T18:55:41.736783Z DEBUG hnsw_rs::hnswio: dumping layer 2, nb_point 1
+2026-01-03T18:55:41.736792Z DEBUG hnsw_rs::hnswio: dumping layer 3, nb_point 0
+2026-01-03T18:55:41.736799Z DEBUG hnsw_rs::hnswio: dumping layer 4, nb_point 0
+2026-01-03T18:55:41.736811Z DEBUG hnsw_rs::hnswio: dumping layer 5, nb_point 0
+2026-01-03T18:55:41.736821Z DEBUG hnsw_rs::hnswio: dumping layer 6, nb_point 0
+2026-01-03T18:55:41.736831Z DEBUG hnsw_rs::hnswio: dumping layer 7, nb_point 0
+2026-01-03T18:55:41.736839Z DEBUG hnsw_rs::hnswio: dumping layer 8, nb_point 0
+2026-01-03T18:55:41.736849Z DEBUG hnsw_rs::hnswio: dumping layer 9, nb_point 0
+2026-01-03T18:55:41.736861Z DEBUG hnsw_rs::hnswio: dumping layer 10, nb_point 0
+2026-01-03T18:55:41.736870Z DEBUG hnsw_rs::hnswio: dumping layer 11, nb_point 0
+2026-01-03T18:55:41.736875Z DEBUG hnsw_rs::hnswio: dumping layer 12, nb_point 0
+2026-01-03T18:55:41.736880Z DEBUG hnsw_rs::hnswio: dumping layer 13, nb_point 0
+2026-01-03T18:55:41.736885Z DEBUG hnsw_rs::hnswio: dumping layer 14, nb_point 0
+2026-01-03T18:55:41.736891Z DEBUG hnsw_rs::hnswio: dumping layer 15, nb_point 0
+2026-01-03T18:55:41.736899Z  INFO hnsw_rs::hnswio: dumped entry_point origin_d 221, p_id PointId(2, 0) 
+2026-01-03T18:55:41.736914Z  INFO hnsw_rs::api: 
+ End of dump, file basename : vectors
+
+2026-01-03T18:55:41.807905Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:41.808087Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:41.808183Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:41.975448Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:42.001208Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:42.438693Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:42.438704Z  WARN lsproxy::semantic_search::enrichment: Enrichment batch failed error=Unsupported value: 'temperature' does not support 0.0 with this model. Only the default (1) value is supported.
+2026-01-03T18:55:42.438750Z  WARN lsproxy::semantic_search::enrichment: Enrichment batch failed error=Unsupported value: 'temperature' does not support 0.0 with this model. Only the default (1) value is supported.
+2026-01-03T18:55:42.438758Z  WARN lsproxy::semantic_search::enrichment: Enrichment batch failed error=Unsupported value: 'temperature' does not support 0.0 with this model. Only the default (1) value is supported.
+2026-01-03T18:55:42.438941Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:43.361342Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:43.365538Z DEBUG lsproxy::semantic_search::embedder::batch: Processed embedding batch provider=openai batch=60 total=78
+2026-01-03T18:55:43.365687Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:43.694076Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:43.695190Z DEBUG lsproxy::semantic_search::embedder::batch: Processed embedding batch provider=openai batch=78 total=78
+2026-01-03T18:55:44.197870Z DEBUG lsproxy::semantic_search::indexer: Indexed batch chunks=78
+2026-01-03T18:55:44.201857Z  INFO hnsw_rs::api: In Hnsw::file_dump
+2026-01-03T18:55:44.201879Z  INFO hnsw_rs::hnswio: Dumping with (unique) basename : vectors
+2026-01-03T18:55:44.204660Z DEBUG hnsw_rs::hnswio: dump  obtained typename "f32"
+2026-01-03T18:55:44.204674Z  INFO hnsw_rs::hnswio: in dump of description
+2026-01-03T18:55:44.204680Z  INFO hnsw_rs::hnswio: dumping ef 200
+2026-01-03T18:55:44.204697Z  INFO hnsw_rs::hnswio: dumping nb point 325
+2026-01-03T18:55:44.204704Z  INFO hnsw_rs::hnswio: dumping dimension of data 1536
+2026-01-03T18:55:44.204709Z  INFO hnsw_rs::hnswio: distance name "anndists::dist::distances::DistCosine" 
+2026-01-03T18:55:44.204714Z  INFO hnsw_rs::hnswio: T name "f32" 
+2026-01-03T18:55:44.204720Z DEBUG hnsw_rs::hnswio: dumping layer 0, nb_point 301
+2026-01-03T18:55:44.206123Z DEBUG hnsw_rs::hnswio: dumping layer 1, nb_point 23
+2026-01-03T18:55:44.206246Z DEBUG hnsw_rs::hnswio: dumping layer 2, nb_point 1
+2026-01-03T18:55:44.206254Z DEBUG hnsw_rs::hnswio: dumping layer 3, nb_point 0
+2026-01-03T18:55:44.206258Z DEBUG hnsw_rs::hnswio: dumping layer 4, nb_point 0
+2026-01-03T18:55:44.206262Z DEBUG hnsw_rs::hnswio: dumping layer 5, nb_point 0
+2026-01-03T18:55:44.206266Z DEBUG hnsw_rs::hnswio: dumping layer 6, nb_point 0
+2026-01-03T18:55:44.206270Z DEBUG hnsw_rs::hnswio: dumping layer 7, nb_point 0
+2026-01-03T18:55:44.206274Z DEBUG hnsw_rs::hnswio: dumping layer 8, nb_point 0
+2026-01-03T18:55:44.206278Z DEBUG hnsw_rs::hnswio: dumping layer 9, nb_point 0
+2026-01-03T18:55:44.206282Z DEBUG hnsw_rs::hnswio: dumping layer 10, nb_point 0
+2026-01-03T18:55:44.206285Z DEBUG hnsw_rs::hnswio: dumping layer 11, nb_point 0
+2026-01-03T18:55:44.206289Z DEBUG hnsw_rs::hnswio: dumping layer 12, nb_point 0
+2026-01-03T18:55:44.206293Z DEBUG hnsw_rs::hnswio: dumping layer 13, nb_point 0
+2026-01-03T18:55:44.206297Z DEBUG hnsw_rs::hnswio: dumping layer 14, nb_point 0
+2026-01-03T18:55:44.206301Z DEBUG hnsw_rs::hnswio: dumping layer 15, nb_point 0
+2026-01-03T18:55:44.206307Z  INFO hnsw_rs::hnswio: dumped entry_point origin_d 221, p_id PointId(2, 0) 
+2026-01-03T18:55:44.206318Z  INFO hnsw_rs::api: 
+ End of dump, file basename : vectors
+
+2026-01-03T18:55:44.312725Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:44.312895Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:44.312961Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:44.452252Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:44.480756Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:44.560648Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:44.560670Z  WARN lsproxy::semantic_search::enrichment: Enrichment batch failed error=Unsupported value: 'temperature' does not support 0.0 with this model. Only the default (1) value is supported.
+2026-01-03T18:55:44.560696Z  WARN lsproxy::semantic_search::enrichment: Enrichment batch failed error=Unsupported value: 'temperature' does not support 0.0 with this model. Only the default (1) value is supported.
+2026-01-03T18:55:44.560702Z  WARN lsproxy::semantic_search::enrichment: Enrichment batch failed error=Unsupported value: 'temperature' does not support 0.0 with this model. Only the default (1) value is supported.
+2026-01-03T18:55:44.560861Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:45.427644Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:45.431815Z DEBUG lsproxy::semantic_search::embedder::batch: Processed embedding batch provider=openai batch=60 total=74
+2026-01-03T18:55:45.431929Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:45.761109Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:45.762035Z DEBUG lsproxy::semantic_search::embedder::batch: Processed embedding batch provider=openai batch=74 total=74
+2026-01-03T18:55:46.443187Z DEBUG lsproxy::semantic_search::indexer: Indexed batch chunks=74
+2026-01-03T18:55:46.456118Z  INFO hnsw_rs::api: In Hnsw::file_dump
+2026-01-03T18:55:46.456150Z  INFO hnsw_rs::hnswio: Dumping with (unique) basename : vectors
+2026-01-03T18:55:46.457364Z DEBUG hnsw_rs::hnswio: dump  obtained typename "f32"
+2026-01-03T18:55:46.457382Z  INFO hnsw_rs::hnswio: in dump of description
+2026-01-03T18:55:46.457387Z  INFO hnsw_rs::hnswio: dumping ef 200
+2026-01-03T18:55:46.457392Z  INFO hnsw_rs::hnswio: dumping nb point 399
+2026-01-03T18:55:46.457397Z  INFO hnsw_rs::hnswio: dumping dimension of data 1536
+2026-01-03T18:55:46.457404Z  INFO hnsw_rs::hnswio: distance name "anndists::dist::distances::DistCosine" 
+2026-01-03T18:55:46.457411Z  INFO hnsw_rs::hnswio: T name "f32" 
+2026-01-03T18:55:46.457419Z DEBUG hnsw_rs::hnswio: dumping layer 0, nb_point 370
+2026-01-03T18:55:46.460622Z DEBUG hnsw_rs::hnswio: dumping layer 1, nb_point 28
+2026-01-03T18:55:46.460794Z DEBUG hnsw_rs::hnswio: dumping layer 2, nb_point 1
+2026-01-03T18:55:46.460804Z DEBUG hnsw_rs::hnswio: dumping layer 3, nb_point 0
+2026-01-03T18:55:46.460809Z DEBUG hnsw_rs::hnswio: dumping layer 4, nb_point 0
+2026-01-03T18:55:46.460814Z DEBUG hnsw_rs::hnswio: dumping layer 5, nb_point 0
+2026-01-03T18:55:46.460819Z DEBUG hnsw_rs::hnswio: dumping layer 6, nb_point 0
+2026-01-03T18:55:46.460825Z DEBUG hnsw_rs::hnswio: dumping layer 7, nb_point 0
+2026-01-03T18:55:46.460830Z DEBUG hnsw_rs::hnswio: dumping layer 8, nb_point 0
+2026-01-03T18:55:46.460834Z DEBUG hnsw_rs::hnswio: dumping layer 9, nb_point 0
+2026-01-03T18:55:46.460838Z DEBUG hnsw_rs::hnswio: dumping layer 10, nb_point 0
+2026-01-03T18:55:46.460843Z DEBUG hnsw_rs::hnswio: dumping layer 11, nb_point 0
+2026-01-03T18:55:46.460848Z DEBUG hnsw_rs::hnswio: dumping layer 12, nb_point 0
+2026-01-03T18:55:46.460853Z DEBUG hnsw_rs::hnswio: dumping layer 13, nb_point 0
+2026-01-03T18:55:46.460859Z DEBUG hnsw_rs::hnswio: dumping layer 14, nb_point 0
+2026-01-03T18:55:46.460863Z DEBUG hnsw_rs::hnswio: dumping layer 15, nb_point 0
+2026-01-03T18:55:46.460873Z  INFO hnsw_rs::hnswio: dumped entry_point origin_d 221, p_id PointId(2, 0) 
+2026-01-03T18:55:46.460890Z  INFO hnsw_rs::api: 
+ End of dump, file basename : vectors
+
+2026-01-03T18:55:46.719543Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:46.719713Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:46.719743Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:46.839945Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:46.846824Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:46.882891Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:46.882895Z  WARN lsproxy::semantic_search::enrichment: Enrichment batch failed error=Unsupported value: 'temperature' does not support 0.0 with this model. Only the default (1) value is supported.
+2026-01-03T18:55:46.883029Z  WARN lsproxy::semantic_search::enrichment: Enrichment batch failed error=Unsupported value: 'temperature' does not support 0.0 with this model. Only the default (1) value is supported.
+2026-01-03T18:55:46.883038Z  WARN lsproxy::semantic_search::enrichment: Enrichment batch failed error=Unsupported value: 'temperature' does not support 0.0 with this model. Only the default (1) value is supported.
+2026-01-03T18:55:46.883214Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:47.550198Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:47.554547Z DEBUG lsproxy::semantic_search::embedder::batch: Processed embedding batch provider=openai batch=60 total=66
+2026-01-03T18:55:47.554638Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:47.982289Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:47.982720Z DEBUG lsproxy::semantic_search::embedder::batch: Processed embedding batch provider=openai batch=66 total=66
+2026-01-03T18:55:48.502732Z DEBUG lsproxy::semantic_search::indexer: Indexed batch chunks=66
+2026-01-03T18:55:48.513761Z  INFO hnsw_rs::api: In Hnsw::file_dump
+2026-01-03T18:55:48.513780Z  INFO hnsw_rs::hnswio: Dumping with (unique) basename : vectors
+2026-01-03T18:55:48.516053Z DEBUG hnsw_rs::hnswio: dump  obtained typename "f32"
+2026-01-03T18:55:48.516104Z  INFO hnsw_rs::hnswio: in dump of description
+2026-01-03T18:55:48.516118Z  INFO hnsw_rs::hnswio: dumping ef 200
+2026-01-03T18:55:48.516129Z  INFO hnsw_rs::hnswio: dumping nb point 465
+2026-01-03T18:55:48.516146Z  INFO hnsw_rs::hnswio: dumping dimension of data 1536
+2026-01-03T18:55:48.516166Z  INFO hnsw_rs::hnswio: distance name "anndists::dist::distances::DistCosine" 
+2026-01-03T18:55:48.516182Z  INFO hnsw_rs::hnswio: T name "f32" 
+2026-01-03T18:55:48.516194Z DEBUG hnsw_rs::hnswio: dumping layer 0, nb_point 434
+2026-01-03T18:55:48.520734Z DEBUG hnsw_rs::hnswio: dumping layer 1, nb_point 30
+2026-01-03T18:55:48.520916Z DEBUG hnsw_rs::hnswio: dumping layer 2, nb_point 1
+2026-01-03T18:55:48.520937Z DEBUG hnsw_rs::hnswio: dumping layer 3, nb_point 0
+2026-01-03T18:55:48.520948Z DEBUG hnsw_rs::hnswio: dumping layer 4, nb_point 0
+2026-01-03T18:55:48.520953Z DEBUG hnsw_rs::hnswio: dumping layer 5, nb_point 0
+2026-01-03T18:55:48.520959Z DEBUG hnsw_rs::hnswio: dumping layer 6, nb_point 0
+2026-01-03T18:55:48.520964Z DEBUG hnsw_rs::hnswio: dumping layer 7, nb_point 0
+2026-01-03T18:55:48.520969Z DEBUG hnsw_rs::hnswio: dumping layer 8, nb_point 0
+2026-01-03T18:55:48.520973Z DEBUG hnsw_rs::hnswio: dumping layer 9, nb_point 0
+2026-01-03T18:55:48.520978Z DEBUG hnsw_rs::hnswio: dumping layer 10, nb_point 0
+2026-01-03T18:55:48.520982Z DEBUG hnsw_rs::hnswio: dumping layer 11, nb_point 0
+2026-01-03T18:55:48.520986Z DEBUG hnsw_rs::hnswio: dumping layer 12, nb_point 0
+2026-01-03T18:55:48.520990Z DEBUG hnsw_rs::hnswio: dumping layer 13, nb_point 0
+2026-01-03T18:55:48.520994Z DEBUG hnsw_rs::hnswio: dumping layer 14, nb_point 0
+2026-01-03T18:55:48.520998Z DEBUG hnsw_rs::hnswio: dumping layer 15, nb_point 0
+2026-01-03T18:55:48.521005Z  INFO hnsw_rs::hnswio: dumped entry_point origin_d 221, p_id PointId(2, 0) 
+2026-01-03T18:55:48.521016Z  INFO hnsw_rs::api: 
+ End of dump, file basename : vectors
+
+2026-01-03T18:55:48.614883Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:48.615043Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:48.615084Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:48.733325Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:48.774386Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:48.782219Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:48.782227Z  WARN lsproxy::semantic_search::enrichment: Enrichment batch failed error=Unsupported value: 'temperature' does not support 0.0 with this model. Only the default (1) value is supported.
+2026-01-03T18:55:48.782263Z  WARN lsproxy::semantic_search::enrichment: Enrichment batch failed error=Unsupported value: 'temperature' does not support 0.0 with this model. Only the default (1) value is supported.
+2026-01-03T18:55:48.782270Z  WARN lsproxy::semantic_search::enrichment: Enrichment batch failed error=Unsupported value: 'temperature' does not support 0.0 with this model. Only the default (1) value is supported.
+2026-01-03T18:55:48.782403Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:49.549144Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:49.552693Z DEBUG lsproxy::semantic_search::embedder::batch: Processed embedding batch provider=openai batch=60 total=69
+2026-01-03T18:55:49.552788Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:49.867613Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:49.868673Z DEBUG lsproxy::semantic_search::embedder::batch: Processed embedding batch provider=openai batch=69 total=69
+2026-01-03T18:55:50.501992Z DEBUG lsproxy::semantic_search::indexer: Indexed batch chunks=69
+2026-01-03T18:55:50.510536Z  INFO hnsw_rs::api: In Hnsw::file_dump
+2026-01-03T18:55:50.510551Z  INFO hnsw_rs::hnswio: Dumping with (unique) basename : vectors
+2026-01-03T18:55:50.512560Z DEBUG hnsw_rs::hnswio: dump  obtained typename "f32"
+2026-01-03T18:55:50.512576Z  INFO hnsw_rs::hnswio: in dump of description
+2026-01-03T18:55:50.512581Z  INFO hnsw_rs::hnswio: dumping ef 200
+2026-01-03T18:55:50.512586Z  INFO hnsw_rs::hnswio: dumping nb point 534
+2026-01-03T18:55:50.512591Z  INFO hnsw_rs::hnswio: dumping dimension of data 1536
+2026-01-03T18:55:50.512596Z  INFO hnsw_rs::hnswio: distance name "anndists::dist::distances::DistCosine" 
+2026-01-03T18:55:50.512600Z  INFO hnsw_rs::hnswio: T name "f32" 
+2026-01-03T18:55:50.512606Z DEBUG hnsw_rs::hnswio: dumping layer 0, nb_point 502
+2026-01-03T18:55:50.514837Z DEBUG hnsw_rs::hnswio: dumping layer 1, nb_point 31
+2026-01-03T18:55:50.514994Z DEBUG hnsw_rs::hnswio: dumping layer 2, nb_point 1
+2026-01-03T18:55:50.515004Z DEBUG hnsw_rs::hnswio: dumping layer 3, nb_point 0
+2026-01-03T18:55:50.515008Z DEBUG hnsw_rs::hnswio: dumping layer 4, nb_point 0
+2026-01-03T18:55:50.515014Z DEBUG hnsw_rs::hnswio: dumping layer 5, nb_point 0
+2026-01-03T18:55:50.515017Z DEBUG hnsw_rs::hnswio: dumping layer 6, nb_point 0
+2026-01-03T18:55:50.515022Z DEBUG hnsw_rs::hnswio: dumping layer 7, nb_point 0
+2026-01-03T18:55:50.515026Z DEBUG hnsw_rs::hnswio: dumping layer 8, nb_point 0
+2026-01-03T18:55:50.515029Z DEBUG hnsw_rs::hnswio: dumping layer 9, nb_point 0
+2026-01-03T18:55:50.515035Z DEBUG hnsw_rs::hnswio: dumping layer 10, nb_point 0
+2026-01-03T18:55:50.515040Z DEBUG hnsw_rs::hnswio: dumping layer 11, nb_point 0
+2026-01-03T18:55:50.515047Z DEBUG hnsw_rs::hnswio: dumping layer 12, nb_point 0
+2026-01-03T18:55:50.515058Z DEBUG hnsw_rs::hnswio: dumping layer 13, nb_point 0
+2026-01-03T18:55:50.515064Z DEBUG hnsw_rs::hnswio: dumping layer 14, nb_point 0
+2026-01-03T18:55:50.515069Z DEBUG hnsw_rs::hnswio: dumping layer 15, nb_point 0
+2026-01-03T18:55:50.515077Z  INFO hnsw_rs::hnswio: dumped entry_point origin_d 221, p_id PointId(2, 0) 
+2026-01-03T18:55:50.515097Z  INFO hnsw_rs::api: 
+ End of dump, file basename : vectors
+
+2026-01-03T18:55:50.586353Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:50.586580Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:50.586726Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:50.739731Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:50.745928Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:50.751432Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:50.751456Z  WARN lsproxy::semantic_search::enrichment: Enrichment batch failed error=Unsupported value: 'temperature' does not support 0.0 with this model. Only the default (1) value is supported.
+2026-01-03T18:55:50.751474Z  WARN lsproxy::semantic_search::enrichment: Enrichment batch failed error=Unsupported value: 'temperature' does not support 0.0 with this model. Only the default (1) value is supported.
+2026-01-03T18:55:50.751482Z  WARN lsproxy::semantic_search::enrichment: Enrichment batch failed error=Unsupported value: 'temperature' does not support 0.0 with this model. Only the default (1) value is supported.
+2026-01-03T18:55:50.751663Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:52.155030Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:52.159374Z DEBUG lsproxy::semantic_search::embedder::batch: Processed embedding batch provider=openai batch=60 total=87
+2026-01-03T18:55:52.159508Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:52.809204Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:52.810989Z DEBUG lsproxy::semantic_search::embedder::batch: Processed embedding batch provider=openai batch=87 total=87
+2026-01-03T18:55:53.448922Z DEBUG lsproxy::semantic_search::indexer: Indexed batch chunks=87
+2026-01-03T18:55:53.452429Z  INFO hnsw_rs::api: In Hnsw::file_dump
+2026-01-03T18:55:53.452460Z  INFO hnsw_rs::hnswio: Dumping with (unique) basename : vectors
+2026-01-03T18:55:53.453890Z DEBUG hnsw_rs::hnswio: dump  obtained typename "f32"
+2026-01-03T18:55:53.453907Z  INFO hnsw_rs::hnswio: in dump of description
+2026-01-03T18:55:53.453914Z  INFO hnsw_rs::hnswio: dumping ef 200
+2026-01-03T18:55:53.453920Z  INFO hnsw_rs::hnswio: dumping nb point 621
+2026-01-03T18:55:53.453926Z  INFO hnsw_rs::hnswio: dumping dimension of data 1536
+2026-01-03T18:55:53.453933Z  INFO hnsw_rs::hnswio: distance name "anndists::dist::distances::DistCosine" 
+2026-01-03T18:55:53.453941Z  INFO hnsw_rs::hnswio: T name "f32" 
+2026-01-03T18:55:53.453947Z DEBUG hnsw_rs::hnswio: dumping layer 0, nb_point 583
+2026-01-03T18:55:53.456949Z DEBUG hnsw_rs::hnswio: dumping layer 1, nb_point 36
+2026-01-03T18:55:53.457133Z DEBUG hnsw_rs::hnswio: dumping layer 2, nb_point 2
+2026-01-03T18:55:53.457149Z DEBUG hnsw_rs::hnswio: dumping layer 3, nb_point 0
+2026-01-03T18:55:53.457154Z DEBUG hnsw_rs::hnswio: dumping layer 4, nb_point 0
+2026-01-03T18:55:53.457159Z DEBUG hnsw_rs::hnswio: dumping layer 5, nb_point 0
+2026-01-03T18:55:53.457164Z DEBUG hnsw_rs::hnswio: dumping layer 6, nb_point 0
+2026-01-03T18:55:53.457168Z DEBUG hnsw_rs::hnswio: dumping layer 7, nb_point 0
+2026-01-03T18:55:53.457172Z DEBUG hnsw_rs::hnswio: dumping layer 8, nb_point 0
+2026-01-03T18:55:53.457181Z DEBUG hnsw_rs::hnswio: dumping layer 9, nb_point 0
+2026-01-03T18:55:53.457186Z DEBUG hnsw_rs::hnswio: dumping layer 10, nb_point 0
+2026-01-03T18:55:53.457192Z DEBUG hnsw_rs::hnswio: dumping layer 11, nb_point 0
+2026-01-03T18:55:53.457198Z DEBUG hnsw_rs::hnswio: dumping layer 12, nb_point 0
+2026-01-03T18:55:53.457204Z DEBUG hnsw_rs::hnswio: dumping layer 13, nb_point 0
+2026-01-03T18:55:53.457210Z DEBUG hnsw_rs::hnswio: dumping layer 14, nb_point 0
+2026-01-03T18:55:53.457216Z DEBUG hnsw_rs::hnswio: dumping layer 15, nb_point 0
+2026-01-03T18:55:53.457226Z  INFO hnsw_rs::hnswio: dumped entry_point origin_d 221, p_id PointId(2, 0) 
+2026-01-03T18:55:53.457248Z  INFO hnsw_rs::api: 
+ End of dump, file basename : vectors
+
+2026-01-03T18:55:53.509691Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:53.704237Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:53.704251Z  WARN lsproxy::semantic_search::enrichment: Enrichment batch failed error=Unsupported value: 'temperature' does not support 0.0 with this model. Only the default (1) value is supported.
+2026-01-03T18:55:53.704377Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T18:55:54.684381Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T18:55:54.686612Z DEBUG lsproxy::semantic_search::embedder::batch: Processed embedding batch provider=openai batch=32 total=32
+2026-01-03T18:55:54.941041Z DEBUG lsproxy::semantic_search::indexer: Indexed batch chunks=32
+2026-01-03T18:55:54.946802Z  INFO hnsw_rs::api: In Hnsw::file_dump
+2026-01-03T18:55:54.946822Z  INFO hnsw_rs::hnswio: Dumping with (unique) basename : vectors
+2026-01-03T18:55:54.948434Z DEBUG hnsw_rs::hnswio: dump  obtained typename "f32"
+2026-01-03T18:55:54.948456Z  INFO hnsw_rs::hnswio: in dump of description
+2026-01-03T18:55:54.948462Z  INFO hnsw_rs::hnswio: dumping ef 200
+2026-01-03T18:55:54.948468Z  INFO hnsw_rs::hnswio: dumping nb point 653
+2026-01-03T18:55:54.948474Z  INFO hnsw_rs::hnswio: dumping dimension of data 1536
+2026-01-03T18:55:54.948481Z  INFO hnsw_rs::hnswio: distance name "anndists::dist::distances::DistCosine" 
+2026-01-03T18:55:54.948491Z  INFO hnsw_rs::hnswio: T name "f32" 
+2026-01-03T18:55:54.948497Z DEBUG hnsw_rs::hnswio: dumping layer 0, nb_point 611
+2026-01-03T18:55:54.952774Z DEBUG hnsw_rs::hnswio: dumping layer 1, nb_point 40
+2026-01-03T18:55:54.952994Z DEBUG hnsw_rs::hnswio: dumping layer 2, nb_point 2
+2026-01-03T18:55:54.953010Z DEBUG hnsw_rs::hnswio: dumping layer 3, nb_point 0
+2026-01-03T18:55:54.953015Z DEBUG hnsw_rs::hnswio: dumping layer 4, nb_point 0
+2026-01-03T18:55:54.953020Z DEBUG hnsw_rs::hnswio: dumping layer 5, nb_point 0
+2026-01-03T18:55:54.953028Z DEBUG hnsw_rs::hnswio: dumping layer 6, nb_point 0
+2026-01-03T18:55:54.953034Z DEBUG hnsw_rs::hnswio: dumping layer 7, nb_point 0
+2026-01-03T18:55:54.953041Z DEBUG hnsw_rs::hnswio: dumping layer 8, nb_point 0
+2026-01-03T18:55:54.953046Z DEBUG hnsw_rs::hnswio: dumping layer 9, nb_point 0
+2026-01-03T18:55:54.953051Z DEBUG hnsw_rs::hnswio: dumping layer 10, nb_point 0
+2026-01-03T18:55:54.953055Z DEBUG hnsw_rs::hnswio: dumping layer 11, nb_point 0
+2026-01-03T18:55:54.953060Z DEBUG hnsw_rs::hnswio: dumping layer 12, nb_point 0
+2026-01-03T18:55:54.953065Z DEBUG hnsw_rs::hnswio: dumping layer 13, nb_point 0
+2026-01-03T18:55:54.953070Z DEBUG hnsw_rs::hnswio: dumping layer 14, nb_point 0
+2026-01-03T18:55:54.953075Z DEBUG hnsw_rs::hnswio: dumping layer 15, nb_point 0
+2026-01-03T18:55:54.953082Z  INFO hnsw_rs::hnswio: dumped entry_point origin_d 221, p_id PointId(2, 0) 
+2026-01-03T18:55:54.953095Z  INFO hnsw_rs::api: 
+ End of dump, file basename : vectors
+
+2026-01-03T18:55:54.954902Z  INFO hnsw_rs::api: In Hnsw::file_dump
+2026-01-03T18:55:54.954917Z  INFO hnsw_rs::hnswio: Dumping with (unique) basename : vectors
+2026-01-03T18:55:54.970783Z DEBUG hnsw_rs::hnswio: dump  obtained typename "f32"
+2026-01-03T18:55:54.970803Z  INFO hnsw_rs::hnswio: in dump of description
+2026-01-03T18:55:54.970816Z  INFO hnsw_rs::hnswio: dumping ef 200
+2026-01-03T18:55:54.970826Z  INFO hnsw_rs::hnswio: dumping nb point 653
+2026-01-03T18:55:54.970841Z  INFO hnsw_rs::hnswio: dumping dimension of data 1536
+2026-01-03T18:55:54.970851Z  INFO hnsw_rs::hnswio: distance name "anndists::dist::distances::DistCosine" 
+2026-01-03T18:55:54.970862Z  INFO hnsw_rs::hnswio: T name "f32" 
+2026-01-03T18:55:54.970879Z DEBUG hnsw_rs::hnswio: dumping layer 0, nb_point 611
+2026-01-03T18:55:54.979215Z DEBUG hnsw_rs::hnswio: dumping layer 1, nb_point 40
+2026-01-03T18:55:54.979414Z DEBUG hnsw_rs::hnswio: dumping layer 2, nb_point 2
+2026-01-03T18:55:54.979428Z DEBUG hnsw_rs::hnswio: dumping layer 3, nb_point 0
+2026-01-03T18:55:54.979433Z DEBUG hnsw_rs::hnswio: dumping layer 4, nb_point 0
+2026-01-03T18:55:54.979436Z DEBUG hnsw_rs::hnswio: dumping layer 5, nb_point 0
+2026-01-03T18:55:54.979440Z DEBUG hnsw_rs::hnswio: dumping layer 6, nb_point 0
+2026-01-03T18:55:54.979445Z DEBUG hnsw_rs::hnswio: dumping layer 7, nb_point 0
+2026-01-03T18:55:54.979451Z DEBUG hnsw_rs::hnswio: dumping layer 8, nb_point 0
+2026-01-03T18:55:54.979458Z DEBUG hnsw_rs::hnswio: dumping layer 9, nb_point 0
+2026-01-03T18:55:54.979469Z DEBUG hnsw_rs::hnswio: dumping layer 10, nb_point 0
+2026-01-03T18:55:54.979480Z DEBUG hnsw_rs::hnswio: dumping layer 11, nb_point 0
+2026-01-03T18:55:54.979491Z DEBUG hnsw_rs::hnswio: dumping layer 12, nb_point 0
+2026-01-03T18:55:54.979499Z DEBUG hnsw_rs::hnswio: dumping layer 13, nb_point 0
+2026-01-03T18:55:54.979508Z DEBUG hnsw_rs::hnswio: dumping layer 14, nb_point 0
+2026-01-03T18:55:54.979516Z DEBUG hnsw_rs::hnswio: dumping layer 15, nb_point 0
+2026-01-03T18:55:54.979529Z  INFO hnsw_rs::hnswio: dumped entry_point origin_d 221, p_id PointId(2, 0) 
+2026-01-03T18:55:54.979554Z  INFO hnsw_rs::api: 
+ End of dump, file basename : vectors
+
+2026-01-03T18:55:55.004091Z  INFO lsproxy::semantic_search::manager: Semantic indexing complete chunks=651
+2026-01-03T18:56:28.017474Z DEBUG serve_inner: rmcp::service: received request id=2 request=CallToolRequest(Request { method: CallToolRequestMethod, params: CallToolRequestParam { name: "health", arguments: Some({}) }, extensions: Extensions })
+2026-01-03T18:56:28.017535Z DEBUG serve_inner: lsproxy::mcp: Processing tool request request_id=0eb406e1-f527-4b59-a2d0-86ee63dbb1f4 tool="health"
+2026-01-03T18:56:28.017776Z DEBUG serve_inner: lsproxy::mcp: Tool request completed request_id=0eb406e1-f527-4b59-a2d0-86ee63dbb1f4
+2026-01-03T18:56:28.017818Z DEBUG serve_inner: rmcp::service: response message id=2 result=CallToolResult(CallToolResult { content: [Annotated { raw: Text(RawTextContent { text: "<!-- request: 0eb406e1-f527-4b59-a2d0-86ee63dbb1f4 -->\n## Debug Mode Active\n\nLog file: /Users/adityasharma/Projects/digests-core/.lsp-mcp/logs/sessions/8b168fc3-6adb-41de-850d-c73c256bb2ec.log\n\n**Important**: If tool responses seem incomplete or low quality, inspect the log file\nto identify discrepancies between what the LSP returned and what was formatted.\nReport any issues to the user.\n\n---\n\nLSP-MCP Health\n\nStatus: ok\nVersion: 0.1.0\nSession ID: 8b168fc3-6adb-41de-850d-c73c256bb2ec\n\nLanguages\n  cpp - unavailable\n  csharp - unavailable\n  golang - unavailable\n  java - unavailable\n  php - unavailable\n  python - unavailable\n  rust - unavailable\n  typescript - unavailable\n\nSemantic Search\n  enabled: true\n  state: ready\n  embedder: openai\n  model: text-embedding-3-small\n  dimension: 1536\n", meta: None }), annotations: None }], structured_content: None, is_error: Some(false), meta: None })
+2026-01-03T19:02:57.473703Z DEBUG lsproxy::semantic_search::watcher: Processing file changes for semantic index files=1
+2026-01-03T19:02:57.540087Z DEBUG reqwest::connect: starting new connection: https://api.openai.com/
+2026-01-03T19:02:57.565572Z DEBUG hyper_util::client::legacy::connect::http: connecting to 162.159.140.245:443
+2026-01-03T19:02:57.589076Z DEBUG hyper_util::client::legacy::connect::http: connected to 162.159.140.245:443
+2026-01-03T19:02:57.761275Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T19:02:57.761294Z  WARN lsproxy::semantic_search::enrichment: Enrichment batch failed error=Unsupported value: 'temperature' does not support 0.0 with this model. Only the default (1) value is supported.
+2026-01-03T19:02:57.761456Z DEBUG reqwest::connect: starting new connection: https://api.openai.com/
+2026-01-03T19:02:57.763931Z DEBUG hyper_util::client::legacy::connect::http: connecting to 162.159.140.245:443
+2026-01-03T19:02:57.777529Z DEBUG hyper_util::client::legacy::connect::http: connected to 162.159.140.245:443
+2026-01-03T19:02:58.492653Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T19:02:58.493619Z DEBUG lsproxy::semantic_search::embedder::batch: Processed embedding batch provider=openai batch=12 total=12
+2026-01-03T19:02:58.582465Z DEBUG lsproxy::semantic_search::indexer: Indexed batch chunks=12
+2026-01-03T19:02:58.583899Z  INFO hnsw_rs::api: In Hnsw::file_dump
+2026-01-03T19:02:58.583910Z  INFO hnsw_rs::hnswio: Dumping with (unique) basename : vectors
+2026-01-03T19:02:58.584790Z DEBUG hnsw_rs::hnswio: dump  obtained typename "f32"
+2026-01-03T19:02:58.584799Z  INFO hnsw_rs::hnswio: in dump of description
+2026-01-03T19:02:58.584805Z  INFO hnsw_rs::hnswio: dumping ef 200
+2026-01-03T19:02:58.584813Z  INFO hnsw_rs::hnswio: dumping nb point 665
+2026-01-03T19:02:58.584818Z  INFO hnsw_rs::hnswio: dumping dimension of data 1536
+2026-01-03T19:02:58.584823Z  INFO hnsw_rs::hnswio: distance name "anndists::dist::distances::DistCosine" 
+2026-01-03T19:02:58.584828Z  INFO hnsw_rs::hnswio: T name "f32" 
+2026-01-03T19:02:58.584833Z DEBUG hnsw_rs::hnswio: dumping layer 0, nb_point 623
+2026-01-03T19:02:58.587180Z DEBUG hnsw_rs::hnswio: dumping layer 1, nb_point 40
+2026-01-03T19:02:58.587363Z DEBUG hnsw_rs::hnswio: dumping layer 2, nb_point 2
+2026-01-03T19:02:58.587376Z DEBUG hnsw_rs::hnswio: dumping layer 3, nb_point 0
+2026-01-03T19:02:58.587382Z DEBUG hnsw_rs::hnswio: dumping layer 4, nb_point 0
+2026-01-03T19:02:58.587385Z DEBUG hnsw_rs::hnswio: dumping layer 5, nb_point 0
+2026-01-03T19:02:58.587389Z DEBUG hnsw_rs::hnswio: dumping layer 6, nb_point 0
+2026-01-03T19:02:58.587392Z DEBUG hnsw_rs::hnswio: dumping layer 7, nb_point 0
+2026-01-03T19:02:58.587396Z DEBUG hnsw_rs::hnswio: dumping layer 8, nb_point 0
+2026-01-03T19:02:58.587399Z DEBUG hnsw_rs::hnswio: dumping layer 9, nb_point 0
+2026-01-03T19:02:58.587403Z DEBUG hnsw_rs::hnswio: dumping layer 10, nb_point 0
+2026-01-03T19:02:58.587406Z DEBUG hnsw_rs::hnswio: dumping layer 11, nb_point 0
+2026-01-03T19:02:58.587409Z DEBUG hnsw_rs::hnswio: dumping layer 12, nb_point 0
+2026-01-03T19:02:58.587413Z DEBUG hnsw_rs::hnswio: dumping layer 13, nb_point 0
+2026-01-03T19:02:58.587416Z DEBUG hnsw_rs::hnswio: dumping layer 14, nb_point 0
+2026-01-03T19:02:58.587419Z DEBUG hnsw_rs::hnswio: dumping layer 15, nb_point 0
+2026-01-03T19:02:58.587425Z  INFO hnsw_rs::hnswio: dumped entry_point origin_d 221, p_id PointId(2, 0) 
+2026-01-03T19:02:58.587437Z  INFO hnsw_rs::api: 
+ End of dump, file basename : vectors
+
+2026-01-03T19:03:07.473515Z DEBUG lsproxy::semantic_search::watcher: Processing file changes for semantic index files=1
+2026-01-03T19:03:07.810249Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T19:03:07.810494Z DEBUG reqwest::connect: starting new connection: https://api.openai.com/
+2026-01-03T19:03:07.810577Z DEBUG reqwest::connect: starting new connection: https://api.openai.com/
+2026-01-03T19:03:07.817266Z DEBUG hyper_util::client::legacy::connect::http: connecting to 162.159.140.245:443
+2026-01-03T19:03:07.817417Z DEBUG hyper_util::client::legacy::connect::http: connecting to 162.159.140.245:443
+2026-01-03T19:03:07.839266Z DEBUG hyper_util::client::legacy::connect::http: connected to 162.159.140.245:443
+2026-01-03T19:03:07.839412Z DEBUG hyper_util::client::legacy::connect::http: connected to 162.159.140.245:443
+2026-01-03T19:03:08.027566Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T19:03:08.050937Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T19:03:08.090346Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T19:03:08.090350Z  WARN lsproxy::semantic_search::enrichment: Enrichment batch failed error=Unsupported value: 'temperature' does not support 0.0 with this model. Only the default (1) value is supported.
+2026-01-03T19:03:08.090401Z  WARN lsproxy::semantic_search::enrichment: Enrichment batch failed error=Unsupported value: 'temperature' does not support 0.0 with this model. Only the default (1) value is supported.
+2026-01-03T19:03:08.090408Z  WARN lsproxy::semantic_search::enrichment: Enrichment batch failed error=Unsupported value: 'temperature' does not support 0.0 with this model. Only the default (1) value is supported.
+2026-01-03T19:03:08.090558Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T19:03:09.094334Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T19:03:09.098350Z DEBUG lsproxy::semantic_search::embedder::batch: Processed embedding batch provider=openai batch=60 total=74
+2026-01-03T19:03:09.098450Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("https", api.openai.com)
+2026-01-03T19:03:09.887402Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T19:03:09.888172Z DEBUG lsproxy::semantic_search::embedder::batch: Processed embedding batch provider=openai batch=74 total=74
+2026-01-03T19:03:10.441281Z DEBUG lsproxy::semantic_search::indexer: Indexed batch chunks=74
+2026-01-03T19:03:10.443905Z  INFO hnsw_rs::api: In Hnsw::file_dump
+2026-01-03T19:03:10.443939Z  INFO hnsw_rs::hnswio: Dumping with (unique) basename : vectors
+2026-01-03T19:03:10.444704Z DEBUG hnsw_rs::hnswio: dump  obtained typename "f32"
+2026-01-03T19:03:10.444713Z  INFO hnsw_rs::hnswio: in dump of description
+2026-01-03T19:03:10.444718Z  INFO hnsw_rs::hnswio: dumping ef 200
+2026-01-03T19:03:10.444723Z  INFO hnsw_rs::hnswio: dumping nb point 739
+2026-01-03T19:03:10.444728Z  INFO hnsw_rs::hnswio: dumping dimension of data 1536
+2026-01-03T19:03:10.444734Z  INFO hnsw_rs::hnswio: distance name "anndists::dist::distances::DistCosine" 
+2026-01-03T19:03:10.444739Z  INFO hnsw_rs::hnswio: T name "f32" 
+2026-01-03T19:03:10.444745Z DEBUG hnsw_rs::hnswio: dumping layer 0, nb_point 693
+2026-01-03T19:03:10.448470Z DEBUG hnsw_rs::hnswio: dumping layer 1, nb_point 44
+2026-01-03T19:03:10.448682Z DEBUG hnsw_rs::hnswio: dumping layer 2, nb_point 2
+2026-01-03T19:03:10.448694Z DEBUG hnsw_rs::hnswio: dumping layer 3, nb_point 0
+2026-01-03T19:03:10.448698Z DEBUG hnsw_rs::hnswio: dumping layer 4, nb_point 0
+2026-01-03T19:03:10.448702Z DEBUG hnsw_rs::hnswio: dumping layer 5, nb_point 0
+2026-01-03T19:03:10.448706Z DEBUG hnsw_rs::hnswio: dumping layer 6, nb_point 0
+2026-01-03T19:03:10.448710Z DEBUG hnsw_rs::hnswio: dumping layer 7, nb_point 0
+2026-01-03T19:03:10.448713Z DEBUG hnsw_rs::hnswio: dumping layer 8, nb_point 0
+2026-01-03T19:03:10.448718Z DEBUG hnsw_rs::hnswio: dumping layer 9, nb_point 0
+2026-01-03T19:03:10.448724Z DEBUG hnsw_rs::hnswio: dumping layer 10, nb_point 0
+2026-01-03T19:03:10.448729Z DEBUG hnsw_rs::hnswio: dumping layer 11, nb_point 0
+2026-01-03T19:03:10.448737Z DEBUG hnsw_rs::hnswio: dumping layer 12, nb_point 0
+2026-01-03T19:03:10.448746Z DEBUG hnsw_rs::hnswio: dumping layer 13, nb_point 0
+2026-01-03T19:03:10.448751Z DEBUG hnsw_rs::hnswio: dumping layer 14, nb_point 0
+2026-01-03T19:03:10.448756Z DEBUG hnsw_rs::hnswio: dumping layer 15, nb_point 0
+2026-01-03T19:03:10.448765Z  INFO hnsw_rs::hnswio: dumped entry_point origin_d 221, p_id PointId(2, 0) 
+2026-01-03T19:03:10.448787Z  INFO hnsw_rs::api: 
+ End of dump, file basename : vectors
+
+2026-01-03T19:33:32.484399Z DEBUG lsproxy::semantic_search::watcher: Processing file changes for semantic index files=1
+2026-01-03T19:33:33.360793Z DEBUG reqwest::connect: starting new connection: https://api.openai.com/
+2026-01-03T19:33:33.401782Z DEBUG hyper_util::client::legacy::connect::http: connecting to 162.159.140.245:443
+2026-01-03T19:33:33.435708Z DEBUG hyper_util::client::legacy::connect::http: connected to 162.159.140.245:443
+2026-01-03T19:33:33.638140Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T19:33:33.638247Z  WARN lsproxy::semantic_search::enrichment: Enrichment batch failed error=Unsupported value: 'temperature' does not support 0.0 with this model. Only the default (1) value is supported.
+2026-01-03T19:33:33.638399Z DEBUG reqwest::connect: starting new connection: https://api.openai.com/
+2026-01-03T19:33:33.644916Z DEBUG hyper_util::client::legacy::connect::http: connecting to 162.159.140.245:443
+2026-01-03T19:33:33.664752Z DEBUG hyper_util::client::legacy::connect::http: connected to 162.159.140.245:443
+2026-01-03T19:33:34.223693Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("https", api.openai.com)
+2026-01-03T19:33:34.224410Z DEBUG lsproxy::semantic_search::embedder::batch: Processed embedding batch provider=openai batch=13 total=13
+2026-01-03T19:33:34.515658Z DEBUG lsproxy::semantic_search::indexer: Indexed batch chunks=13
+2026-01-03T19:33:34.517976Z  INFO hnsw_rs::api: In Hnsw::file_dump
+2026-01-03T19:33:34.518001Z  INFO hnsw_rs::hnswio: Dumping with (unique) basename : vectors
+2026-01-03T19:33:34.533920Z DEBUG hnsw_rs::hnswio: dump  obtained typename "f32"
+2026-01-03T19:33:34.533945Z  INFO hnsw_rs::hnswio: in dump of description
+2026-01-03T19:33:34.533953Z  INFO hnsw_rs::hnswio: dumping ef 200
+2026-01-03T19:33:34.533960Z  INFO hnsw_rs::hnswio: dumping nb point 752
+2026-01-03T19:33:34.533968Z  INFO hnsw_rs::hnswio: dumping dimension of data 1536
+2026-01-03T19:33:34.533987Z  INFO hnsw_rs::hnswio: distance name "anndists::dist::distances::DistCosine" 
+2026-01-03T19:33:34.533993Z  INFO hnsw_rs::hnswio: T name "f32" 
+2026-01-03T19:33:34.533999Z DEBUG hnsw_rs::hnswio: dumping layer 0, nb_point 704
+2026-01-03T19:33:34.537088Z DEBUG hnsw_rs::hnswio: dumping layer 1, nb_point 46
+2026-01-03T19:33:34.537360Z DEBUG hnsw_rs::hnswio: dumping layer 2, nb_point 2
+2026-01-03T19:33:34.537376Z DEBUG hnsw_rs::hnswio: dumping layer 3, nb_point 0
+2026-01-03T19:33:34.537381Z DEBUG hnsw_rs::hnswio: dumping layer 4, nb_point 0
+2026-01-03T19:33:34.537386Z DEBUG hnsw_rs::hnswio: dumping layer 5, nb_point 0
+2026-01-03T19:33:34.537392Z DEBUG hnsw_rs::hnswio: dumping layer 6, nb_point 0
+2026-01-03T19:33:34.537412Z DEBUG hnsw_rs::hnswio: dumping layer 7, nb_point 0
+2026-01-03T19:33:34.537424Z DEBUG hnsw_rs::hnswio: dumping layer 8, nb_point 0
+2026-01-03T19:33:34.537430Z DEBUG hnsw_rs::hnswio: dumping layer 9, nb_point 0
+2026-01-03T19:33:34.537434Z DEBUG hnsw_rs::hnswio: dumping layer 10, nb_point 0
+2026-01-03T19:33:34.537438Z DEBUG hnsw_rs::hnswio: dumping layer 11, nb_point 0
+2026-01-03T19:33:34.537443Z DEBUG hnsw_rs::hnswio: dumping layer 12, nb_point 0
+2026-01-03T19:33:34.537447Z DEBUG hnsw_rs::hnswio: dumping layer 13, nb_point 0
+2026-01-03T19:33:34.537455Z DEBUG hnsw_rs::hnswio: dumping layer 14, nb_point 0
+2026-01-03T19:33:34.537459Z DEBUG hnsw_rs::hnswio: dumping layer 15, nb_point 0
+2026-01-03T19:33:34.537468Z  INFO hnsw_rs::hnswio: dumped entry_point origin_d 221, p_id PointId(2, 0) 
+2026-01-03T19:33:34.537482Z  INFO hnsw_rs::api: 
+ End of dump, file basename : vectors
+

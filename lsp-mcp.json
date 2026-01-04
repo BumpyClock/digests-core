@@ -1,0 +1,23 @@
+{
+    "languages": [
+        "rust"
+    ],
+    "tools": {
+        "preset": "full",
+        "enable": [
+            "semanticSearch"
+        ],
+        "disable": [
+            "listFiles",
+            "readSourceCode"
+        ]
+    },
+    "semantic_search": {
+        "enabled": true
+    },
+    "debug": {
+        "enabled": true,
+        "log_level": "debug",
+        "log_dir": ".lsp-mcp/logs"
+    }
+}

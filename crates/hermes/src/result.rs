@@ -10,6 +10,8 @@ pub struct ParseResult {
     pub url: String,
     pub title: String,
     pub content: String,
+    #[serde(skip_serializing, skip_deserializing)]
+    pub raw_html: Option<String>,
     pub author: Option<String>,
     pub date_published: Option<DateTime<Utc>>,
     pub lead_image_url: Option<String>,

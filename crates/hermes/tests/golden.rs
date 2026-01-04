@@ -28,6 +28,16 @@ fn load_fixture(name: &str) -> ExpectedOutput {
     serde_json::from_str(&content).expect(&format!("Failed to parse fixture: {}", path))
 }
 
+/// Load an HTML snapshot from the fixtures directory.
+fn load_html_fixture(name: &str) -> String {
+    let path = format!(
+        "{}/tests/fixtures/html/{}.html",
+        env!("CARGO_MANIFEST_DIR"),
+        name
+    );
+    fs::read_to_string(&path).expect(&format!("Failed to read HTML fixture: {}", path))
+}
+
 /// Check if word count is within 5% tolerance (with a minimum delta of 10).
 fn word_count_within_tolerance(actual: i32, expected: i32) -> bool {
     let tolerance = (expected as f64 * 0.05).ceil() as i32 + 10;
@@ -79,13 +89,14 @@ fn content_prefix_matches(actual: &str, expected: &str, chars: usize) -> bool {
 /// Run a golden test against a live URL.
 async fn run_golden_test(fixture_name: &str) {
     let expected = load_fixture(fixture_name);
+    let html = load_html_fixture(fixture_name);
 
     let client = Client::builder()
         .content_type(ContentType::Text)
         .timeout(std::time::Duration::from_secs(30))
         .build();
 
-    let result = client.parse(&expected.url).await;
+    let result = client.parse_html(&html, &expected.url).await;
 
     match result {
         Ok(parsed) => {
