@@ -15,7 +15,50 @@ Rust workspace providing shared parsing primitives and a C ABI for multi-platfor
 ```bash
 cargo test -q    # run all tests
 cargo build -p digests-ffi --release   # produce FFI library (libdigests_ffi.*)
+
+## Documentation
+
+Start with the documentation index and per-crate pages:
+
+- `docs/index.md`
+- `docs/overview.md`
+- `docs/building.md`
+- `docs/feed.md`
+- `docs/hermes.md`
+- `docs/ffi.md`
+- `docs/cli.md`
+- `docs/troubleshooting.md`
 ```
+
+## CLI usage (digests-cli)
+
+Run the CLI from the workspace:
+
+```bash
+cargo run -p digests-cli -- https://example.com/feed.xml
+```
+
+Build and run the binary:
+
+```bash
+cargo build -p digests-cli --release
+./target/release/digests-cli https://example.com/feed.xml
+```
+
+Common examples:
+
+```bash
+# Parse multiple feeds and emit an envelope
+./target/release/digests-cli https://example.com/feed.xml https://example.com/podcast.xml
+
+# Parse from stdin
+cat feed.xml | ./target/release/digests-cli -
+
+# Override the feed_url field when parsing a local file
+./target/release/digests-cli --feed-url https://example.com/feed.xml ./local-copy.xml
+```
+
+Use `--compact` to emit compact JSON and `--help` for the full option list.
 
 ## FFI Usage (C ABI)
 
